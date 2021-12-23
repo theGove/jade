@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Script Foundry</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+    <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.6.0/acorn.min.js" integrity="sha512-GxXGTaS+f1zewxxP8YJT8y74B9jarcQzPSP3j1+pYKk4pMmOikcKBZmjVP+U1+wAiAqv+FwISQXZnPRmdWXaEw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ext-language_tools.min.js" integrity="sha512-S7Whi8oQAQu/MK6AhBWufIJIyOvqORj+/1YDM9MaHeRalsZjzyYS7Usk4fsh+6J77PUhuk5v/BxaMDXRdWd1KA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+    <script type="text/javascript" src="globals.js"></script>
+    <script type="text/javascript" src="system.js"></script>
+    <script type="text/javascript" src="public.js"></script>
+    <script>
+        Office.onReady((info) => {
+        if (info.host === Office.HostType.Excel) {
+            Excel.run(async (excel)=>{
+                const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
+                await excel.sync()
+                console.log("code_module_ids_from_settings",code_module_ids_from_settings.value)
+                if(!code_module_ids_from_settings.isNullObject){
+                    for(const xmlid of code_module_ids_from_settings.value){
+                        code_module_ids.push(xmlid)
+                    }
+                }
+                start_me_up()
+            })
+        }else{
+            document.getElementById("sideload-msg").style.display = "flex"
+            document.getElementById("menu").style.display = "none"
+        }
+        });
+    </script>
+    <style id="head_style" data-name="system">
+
+body{
+    margin: -5;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color:rgb(252,239,205);
+    font-size: 1.2rem;
+    font-family: "Segoe UI Web (West European)",Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica Neue,sans-serif;
+}
+.ace-head{
+    display:block;
+    background-color: rgb(10, 88, 45);
+    padding: 3rem 1rem 1rem 1rem;
+   
+}
+.ace-logo{
+    display:inline-block;
+    padding: 1rem;
+    border-radius: 50%;
+    background-color: white;
+    margin: auto;
+    display: table;
+    
+}
+
+.ace-heading-1{
+  font-weight: 100;
+  color:white;
+  font-size: 3rem;
+  text-align:center;
+  word-wrap: break-word;
+  line-height: 100%;
+}
+
+.ace-heading-2{
+    font-weight: 400;
+    color:#800000;
+    font-size: 2rem;
+    text-align:center;
+    word-wrap: break-word;
+    line-height: 100%;
+  }
+
+  .ace-body{
+      padding: 0 1.5rem 1.5rem 1.5rem;
+  }
+.ace-table{
+        margin-left: auto;
+        margin-right: auto;
+        border-spacing: .5rem;
+
+}
+.ace-clickable{
+  cursor:pointer
+
+}  
+
+
+.panel-selector{
+                width:100%;
+                margin:0;
+                background-color: rgb(1, 93, 43);
+                color:white;
+                font-weight: 100;
+                padding:0 0 0 1.5rem;
+                font-size: 1.2rem;
+
+            }
+
+.panel-selector-option{
+    background-color: white;
+    color:black;
+}
+.ace_editor { 
+            position:absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            
+        }   
+
+.content{
+    padding: 0 .5rem 0 .5rem
+}
+.editor-content{
+    padding: 0
+}
+.top-corner{
+    position:absolute;
+    top:0;
+    right:0;
+}   
+.hidden{
+    display:none
+}
+.fas, .far {
+  color: #800000;
+}
+.ace-form{
+    text-align: left;
+    font-size: 1rem;
+    width:15rem;
+
+}
+.ace-output{
+    margin:.5rem;
+ 
+}
+.ace-output-header{
+    background-color: rgb(6, 100, 48);
+    color:white;
+    padding:.2rem .2rem .2rem 1rem;
+    font-weight: bold;
+}
+
+.ace-output-close{
+    float:right;
+    width:3rem;
+    text-align: right;
+}
+
+.ace-output-body{
+    background-color: white;
+    color:black;
+    padding: .5rem;
+}
+
+.ace-output-time{
+    color: limegreen;
+    margin-right: 1rem;
+}
+
+#ace-alert {
+    position: fixed;
+    top: 0;
+    border:2px solid black ;
+    z-index:99;
+    min-width: 200px;
+    max-width: 90%;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+.ace-alert-header{
+    background-color: royalBlue;
+    color:white;
+    padding:.2rem .2rem .2rem 1rem;
+    font-weight: bold;
+}
+
+.ace-alert-close{
+    float:right;
+    width:3rem;
+    text-align: right;
+}
+
+.ace-alert-body{
+    background-color: white;
+    color:black;
+    padding: .5rem;
+}
+
+
+</style>
+
+</head>
+<body>
+  <div id="panel_home">  
+    <div class="ace-head">
+        <div class="ace-logo">
+          <img width="90" height="90" src="https://byuis.github.io/taskpane/assets/logo-filled.png" alt="ACE" title="ACE" />
+        </div>
+        <h1 class="ace-heading-1">JADE</h1>
+      </div> 
+    <div class="ace-body"> 
+    <h2  class="ace-heading-2">JavaScript Automation Development Environment</h2>
+      <table id="menu" class="ace-table">
+        <tr class="ace-clickable hidden" onclick="open_editor()" id="open-editor">
+            <td><i class="fas fa-laptop-code"></i></td>
+            <td>Open Code Editor</td>
+        </tr>
+
+        <tr class="ace-clickable" onclick="toggle_element('add-module');tag('new-module-name').focus()"">
+          <td><i class="far fa-window-maximize"></i></td>
+          <td>Add a Code Module</td>
+        </tr>
+        <tr id="add-module" class="hidden">
+          <td colspan=2><input id="new-module-name" style="width:11rem" placeholder="Module Name"/>
+            <button id="module-add-button" onclick="add_code_module(tag('new-module-name').value)">Add</button></td>
+        </tr>
+
+        <tr class="ace-clickable" onclick="show_import_module()">
+            <td><i class="fas fa-file-import"></i></td>
+          <td>Import a Code Module</td>
+        </tr>
+        <tr id="import-module" class="hidden">
+          <td colspan=2> <input id="gist-url" style="width:10.5rem"  placeholder="Gist Url"/>
+            <button id="module-import-button" onclick="import_code_module(tag('gist-url').value)">Import</button></td>
+        </tr>
+
+        <tr class="ace-clickable" onclick="show_examples()">
+          <td><i class="fas fa-graduation-cap"></i></td>
+          <td>Show Examples</td>
+        </tr>
+
+        <tr class="ace-clickable" onclick="show_automations()">
+          <td><i class="fas fa-list-ol"></i></td>
+          <td>List Automations</td>
+        </tr>
+
+        <tr class="ace-clickable">
+          <td><i class="fas fa-book"></i></td>
+          <td>View Documentation</td>
+        </tr>
+
+        <tr class="ace-clickable" onclick="toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);">
+          <td><i class="far fa-comment-alt"></i></td>
+          <td>Send Feedback</td>
+        </tr>
+        <tr id="survey" class="hidden">
+          <td colspan=2 style="text-align:center"> 
+              <select id="fb-type" style="width:15.4rem">
+                  <option value="" disabled selected hidden>Type of feedback...</option>
+                  <option value="Feature Resuest">Request a feature</option>
+                  <option value="Report Issue">Report a problem</option>
+                  <option value="Praise for Addin">Praise for this add-in</option>
+                  <option value="Offer to help with development">Offer to help with development</option>
+                  <option value="Question">Ask a question</option>
+                </select><br />
+                <select id="fb-platform" style="width:15.4rem">
+                    <option value="" disabled selected hidden>MS Office Platform...</option>
+                    <option value="All">All</option>
+                    <option value="Mac">Mac</option>
+                    <option value="Windows">Windows</option>
+                    <option value="Online">Online</option>
+                    <option value="iPad">iPda</option>
+                    <option value="Android">Android</option>
+                    <option value="Other">Other</option>
+                </select><br />
+                <input id="fb-email" style="width:15rem" placeholder="Your email address (optional)"/><br />
+                <textarea id="fb-text" style="height:5rem;width:15rem;margin-top: 5px;" placeholder="The text of your feedback..."></textarea><br />
+                <button id="fb-button" onclick="submit_feedback()">Submit</button>
+                </div><div id="fb-message" style="width:15rem;color:red;text-align:left"></div>
+          </td>
+        </tr>
+
+        <tr class="ace-clickable" onclick="configure_settings()">
+            <td><i class="fas fa-cog"></i></td>
+            <td>Settings</td>
+          </tr>
+          <tr id="settings" class="hidden">
+            <td colspan=2 style="text-align:center" class="ace-form"> 
+                <div class="ace-form">Example List URL</div>
+                <input id="examples-url" style="width:15.4rem">
+
+                <div class="ace-form" style="margin-top: .3rem;">Editor Theme</div>
+                <select id="ace-theme" style="width:15.4rem">
+                    <option value="ambiance">Ambiance</option>
+                    <option value="chaos">Chaos</option>
+                    <option value="chrome">Chrome</option>
+                    <option value="clouds">Clouds</option>
+                    <option value="clouds_midnight">Clouds Midnight</option>
+                    <option value="cobalt">Cobalt</option>
+                    <option value="crimson_editor">Crimson Editor</option>
+                    <option value="dawn">Dawn</option>
+                    <option value="dracula">Dracula</option>
+                    <option value="dreamweaver">Dreamweaver</option>
+                    <option value="eclipse">Eclipse</option>
+                    <option value="github">Github</option>
+                    <option value="gob">Gob</option>
+                    <option value="gruvbox">Gruvbox</option>
+                    <option value="idle_fingers">Idle Fingers</option>
+                    <option value="iplastic">Iplastic</option>
+                    <option value="katzenmilch">Katzenmilch</option>
+                    <option value="kr_theme">Kr Theme</option>
+                    <option value="kuroir">Kuroir</option>
+                    <option value="merbivore">Merbivore</option>
+                    <option value="merbivore_soft">Merbivore Soft</option>
+                    <option value="mono_industrial">Mono Industrial</option>
+                    <option value="monokai">Monokai</option>
+                    <option value="nord_dark">Nord Dark</option>
+                    <option value="one_dark">One Dark</option>
+                    <option value="pastel_on_dark">Pastel On Dark</option>
+                    <option value="solarized_dark">Solarized Dark</option>
+                    <option value="solarized_light" selected>Solarized Light</option>
+                    <option value="sqlserver">Sqlserver</option>
+                    <option value="terminal">Terminal</option>
+                    <option value="textmate">Textmate</option>
+                    <option value="tomorrow">Tomorrow</option>
+                    <option value="tomorrow_night">Tomorrow Night</option>
+                    <option value="tomorrow_night_blue">Tomorrow Night Blue</option>
+                    <option value="tomorrow_night_bright">Tomorrow Night Bright</option>
+                    <option value="tomorrow_night_eighties">Tomorrow Night Eighties</option>
+                    <option value="twilight">Twilight</option>
+                    <option value="vibrant_ink">Vibrant Ink</option>
+                    <option value="xcode">Xcode</option>
+                </select><br />
+                <div class="ace-form" style="margin-top: .3rem;">Editor Word Wrap</div>
+                <select id="ace-word-wrap" style="width:15.4rem">
+                    <option value="no-wrap" selected>Do not wrap long lines</option>
+                    <option value="wrap">Wrap long lines</option>
+                    <option value="wrap-indented">Wrap and indent long lines</option>
+                </select><br />
+                <div class="ace-form"  style="margin-top: .3rem;">Editor Font Size</div>
+                <select id="ace-font-size" style="width:15.4rem">
+                    <option value="6">6pt</option>
+                    <option value="8">8pt</option>
+                    <option value="10">10pt</option>
+                    <option value="12">12pt</option>
+                    <option value="14" selected>14pt</option>
+                    <option value="18">18pt</option>
+                    <option value="20">20pt</option>
+                    <option value="24">24pt</option>
+                    <option value="36">36pt</option>
+                    <option value="48">48pt</option>
+                </select><br />
+                <div class="ace-form"  style="margin-top: .3rem;">Show Line Numbers <input id="ace-line-numbers" type="checkbox" value="true"/></div>
+                <br />
+                  <button id="settings-button" onclick="console.log(1),save_settings()">Save</button>
+            </td>
+          </tr>
+  
+        
+
+    </table>
+    <section id="sideload-msg"  style="display:none">
+        <h2 class="ace-heading-2">This addin must be run from inside Excel.</h2>
+    </section>
+    </div>
+</div>
+</body>
+
+</html>
