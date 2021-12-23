@@ -199,7 +199,10 @@ body{
     color:black;
     padding: .5rem;
 }
-
+.menu-link {
+   color:inherit;
+   text-decoration: none;
+}
 
 </style>
 
@@ -250,7 +253,7 @@ body{
 
         <tr class="ace-clickable">
           <td><i class="fas fa-book"></i></td>
-          <td>View Documentation</td>
+          <td><a class="menu-link" href="http://support.jsvba.com" target="_blank">View Documentation</a></td>
         </tr>
 
         <tr class="ace-clickable" onclick="toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);">
