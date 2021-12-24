@@ -7,7 +7,7 @@ const default_style_name="marx"
 // that become modules in jsvba
 
 async function load_gist(gist_id){
-    console.log("gisting")
+    console.log("gisting", gist_id)
   try{
       
     const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
@@ -18,14 +18,13 @@ async function load_gist(gist_id){
         console.log("===================================")
         incorporate_code(file.content)
     }
+    auto_exec()
+    incorporate_code("auto_exec=null")
+    
   }catch(e){
     console.log("Error fetching gist", e)
   }
 }
-
-
-
-
 
 
 async function load_code_module(gist_url){
@@ -40,8 +39,8 @@ async function load_code_module(gist_url){
 }
 
 async function import_code_module(url_or_gist_id){
-    global_settings.system.module_to_import=url_or_gist_id
-    console.log("at import code mod", global_settings.system)
+    settings.workbook.module_to_import=url_or_gist_id
+    console.log("at import code mod", settings.workbook)
 
     hide_element("import-module")
     save_settings()
@@ -138,7 +137,7 @@ async function import_code_module(url_or_gist_id){
 
 
 function set_css(user_css){
-    css_suffix=user_css
+    globals.css_suffix=user_css
 }
 
 function add_library(url){
@@ -154,7 +153,7 @@ function set_theme(theme_name){
 }
 
 function list_themes(){
-    for(const [theme, url] of Object.entries(styles)){
+    for(const [theme, url] of Object.entries(settings.workbook.styles)){
         console.log(theme, url)
     }
 }
@@ -166,12 +165,12 @@ function tag(id){
 }
 
 function close_canvas(){
-    panel_stack.pop()
-    show_panel(panel_stack.pop())
+    globals.panel_stack.pop()
+    show_panel(globals.panel_stack.pop())
 }
 
 function open_editor(){
-    show_panel(code_panels[0])
+    show_panel(globals.code_panels[0])
 }
 
 function open_examples(){
@@ -206,8 +205,8 @@ function open_canvas(panel_name, html, show_panel_close_button, style_name){
         build_panel(panel_name)
     }
 
-    if(!panels.includes(panel_name)){
-        panels.push(panel_name)
+    if(!globals.panels.includes(panel_name)){
+        globals.panels.push(panel_name)
     }
 
     show_panel(panel_name)

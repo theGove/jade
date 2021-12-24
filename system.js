@@ -1,8 +1,23 @@
+const settings={}
+const globals={
+  css_suffix:"",
+  panels:['panel_home','panel_examples'],
+  panel_labels:["Home", "Examples", "Output"],
+  code_panels:[],
+  panel_stack:['panel_home']
+}
 function start_me_up(){
   //console.log("at start_me_up")
-  styles.system=tag("head_style").innerText
-  panels.push("panel_home")
-
+  settings.workbook.styles.system=tag("head_style").innerText
+  globals.panels.push("panel_home")
+  
+  //load code from one gist if specified.  
+  console.log("about ot load")
+  if(settings.workbook.load_gist_id){
+    console.log("in if")
+    load_gist(settings.workbook.load_gist_id)
+    
+  }
   
   // add event listner to "add code module" input
   tag("new-module-name").addEventListener("keyup", function(event) {
@@ -24,7 +39,7 @@ function start_me_up(){
   // fit the editor to the windows on resize
   window.addEventListener('resize', function(event) {
     //console.log("hi")
-    for(const panel_name of code_panels){
+    for(const panel_name of globals.code_panels){
       tag(panel_name + "_editor-page").style.height = editor_height()
     }
   }, true);
@@ -32,13 +47,13 @@ function start_me_up(){
   init_output()
   
   // ---------------- Initializing Code Editors -----------------------------
-  if(code_module_ids.length>0){// show the button to view code modules
+  if(settings.workbook.code_module_ids.length>0){// show the button to view code modules
     show_element("open-editor")
   }
-  //console.log("at init_code_editors       code_module_ids",code_module_ids)
+  //console.log("at init_code_editors       settings.workbook.code_module_ids",settings.workbook.code_module_ids)
   Excel.run(async (excel)=>{
     const parser = new DOMParser();
-    for(const code_module_id of code_module_ids){
+    for(const code_module_id of settings.workbook.code_module_ids){
       const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
       const xmlBlob = xmlpart.getXml();
       await excel.sync()
@@ -52,40 +67,12 @@ function start_me_up(){
       //console.log("settings2", JSON.parse(settings))
       //console.log("options", options)
       //console.log("options-parsed", JSON.parse(options))
-      if(module_name==="ACE System"){
-        ace_system_module_id = code_module_id
-        if(hide_ace_system_module){
-            // just need to load the code  
-          incorporate_code(module_code)
-        }else{
-          add_code_editor(module_name, module_code,code_module_id, JSON.parse(settings), JSON.parse(options))        
-        }
-      }else{
-        add_code_editor(module_name, module_code,code_module_id, JSON.parse(settings), JSON.parse(options))        
-      }
-    }
-    console.log("ace_system_module_id",ace_system_module_id)
-    if(ace_system_module_id){
-      
-      // the system settings module has been loaded
-      // waiting to give the ace editor time to load
-      setTimeout(function() {
-        try{
-        console.log("at first try")  
-        apply_ace_system_settings()
-        }catch(e){
-          setTimeout(function() {
-            try{
-            apply_ace_system_settings()
-            }catch(e){
-              setTimeout(apply_ace_system_settings,5000)//finally, wait for 5 more seconds
-            }
-          }, 5000);//then wait for 5 more seconds
-    
-        }
-      }, 1000);  // first wait for 1 second
+      add_code_editor(module_name, module_code,code_module_id, JSON.parse(settings), JSON.parse(options))        
     }
   })
+
+
+  console.log("end of  start_me_up, settings", settings)
 }
 
 function configure_settings(){
@@ -93,66 +80,70 @@ function configure_settings(){
   if(!tag('settings').className.includes("hidden")){
     //tag('ace-theme').focus();
     tag('settings-button').scrollIntoView(true);
-    //console.log("fontSize",global_settings.ace_options.fontSize)  
-    tag("ace-font-size").value = global_settings.ace_options.fontSize.replace("pt","")
-    if(global_settings.ace_options.wrap===false){
+    //console.log("fontSize",settings.user.ace_options.fontSize)  
+    tag("ace-font-size").value = settings.user.ace_options.fontSize.replace("pt","")
+    if(settings.user.ace_options.wrap===false){
       tag("ace-word-wrap").value="no-wrap"
-    }else if(global_settings.ace_options.indentedSoftWrap){
+    }else if(settings.user.ace_options.indentedSoftWrap){
       tag("ace-word-wrap").value="wrap-indented"
     }else{
       tag("ace-word-wrap").value="wrap"
     }
-    //console.log("theme", global_settings.ace_options.theme)
-    //console.log("theme", global_settings.ace_options.theme.split("/")[2])
-    tag("examples-url").value  = global_settings.system.examples_url
-    tag("ace-theme").value  = global_settings.ace_options.theme.split("/")[2]
-    tag("ace-line-numbers").checked = global_settings.ace_options.showGutter
+    //console.log("theme", settings.user.ace_options.theme)
+    //console.log("theme", settings.user.ace_options.theme.split("/")[2])
+    tag("examples-gist-id").value  = settings.workbook.examples_gist_id
+    tag("ace-theme").value  = settings.user.ace_options.theme.split("/")[2]
+    tag("ace-line-numbers").checked = settings.user.ace_options.showGutter
+    if(settings.workbook.load_gist_id){
+      tag("load-gist-id").value = settings.workbook.load_gist_id
+    }
   }
 }
 
 
-function save_settings(){
-  console.log("at save settiungs",global_settings.system)
+async function save_settings(){
 
-  let local_examples_url=global_settings.system.examples_url
-  if(tag("examples-url").value){
-    local_examples_url=tag("examples-url").value
-  }
-  global_settings.system.examples_url=tag("examples-url").value
-
-  if(tag("examples-url").value && global_settings.system.examples_url!==tag("examples-url").value){
-    // different examples specified.  Need to rebuild
-    rebuild_examples()
-  }
   
-  global_settings.ace_options.theme="ace/theme/" + tag("ace-theme").value
-  global_settings.ace_options.fontSize=tag("ace-font-size").value + "pt"
-  global_settings.ace_options.showGutter=tag("ace-line-numbers").checked
+  if(tag("examples-gist-id").value && settings.workbook.examples_gist_id!==tag("examples-gist-id").value){
+    // different examples specified.  Need to rebuild
+    rebuild_examples(tag("examples-gist-id").value)
+  }
+  settings.workbook.examples_gist_id=tag("examples-gist-id").value
+  settings.workbook.load_gist_id=tag("load-gist-id").value
+  settings.user.ace_options.theme="ace/theme/" + tag("ace-theme").value
+  settings.user.ace_options.fontSize=tag("ace-font-size").value + "pt"
+  settings.user.ace_options.showGutter=tag("ace-line-numbers").checked
   switch(tag("ace-word-wrap").value){
     case "wrap":
-      global_settings.ace_options.wrap=true
-      global_settings.ace_options.indentedSoftWrap=false
+      settings.user.ace_options.wrap=true
+      settings.user.ace_options.indentedSoftWrap=false
       break
     case "wrap-indented":
-      global_settings.ace_options.wrap=true
-      global_settings.ace_options.indentedSoftWrap=true
+      settings.user.ace_options.wrap=true
+      settings.user.ace_options.indentedSoftWrap=true
       break
     default:  
-      global_settings.ace_options.wrap="off"
+      settings.user.ace_options.wrap="off"
   }
-  //console.log(global_settings.ace_options)
-  apply_editor_options(global_settings.ace_options)
-  const code = `function apply_ace_system_settings(){
-    global_settings=${JSON.stringify(global_settings,null,4)}
-    apply_editor_options(global_settings.ace_options)
-  }
-  `
-  save_module_to_workbook(code,"ACE System",null,ace_system_module_id)
+  //console.log(settings.user.ace_options)
+  apply_editor_options(settings.user.ace_options)
+
+  await write_settings_to_workbook()
+
   hide_element('settings')
 }
 
+async function write_settings_to_workbook(){
+  console.log("at write_settings_to_workbook", settings)
+  await Excel.run(async (excel)=>{
+    const xl_settings = excel.workbook.settings;
+    xl_settings.add("jade", settings);  // adds or sets the value
+    await excel.sync()
+  })
+}
+
 function apply_editor_options(options){
-  for(const panel_name of code_panels){
+  for(const panel_name of globals.code_panels){
     //console.log("updating options on ", panel_name)
     const editor = ace.edit(panel_name + "-content");
     editor.setOptions(options)
@@ -238,7 +229,7 @@ async function submit_feedback(){
 function add_code_module(name,code){
   // a module built with whatever code is in default_code
   if(!code){// no code is pased in, determine which default code to import
-    if(code_panels.length === 0){
+    if(globals.code_panels.length === 0){
       code = default_code()
     }else{  
       code = default_code("panel_" + name.toLowerCase().split(" ").join("_") + "_module")
@@ -248,8 +239,8 @@ function add_code_module(name,code){
   add_code_editor(name, code, "")
   hide_element("add-module")
   show_element("open-editor")
-  show_panel(code_panels[code_panels.length-1])
-  write_module_to_workbook(code,code_panels[code_panels.length-1])
+  show_panel(globals.code_panels[globals.code_panels.length-1])
+  write_module_to_workbook(code,globals.code_panels[globals.code_panels.length-1])
 }
 
 async function get_code_from_gist(url){
@@ -269,20 +260,20 @@ async function get_style(style_name, url, integrate_now){
      integrate_now=true
   }
 
-  if(!styles[style_name]){
-    styles[style_name]=url
+  if(!settings.workbook.styles[style_name]){
+    settings.workbook.styles[style_name]=url
   }
 
-  if(styles[style_name].substr(0,8)==="https://"){
+  if(settings.workbook.styles[style_name].substr(0,8)==="https://"){
     // the style has not yet been fetched
     //console.log("fetching")
-    const response = await fetch(styles[style_name])
+    const response = await fetch(settings.workbook.styles[style_name])
     const data = await response.text()
     //console.log("data",data)
-    styles[style_name]=data
+    settings.workbook.styles[style_name]=data
     if(integrate_now){
       document.getElementById("head_style").remove()
-      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + styles[style_name] + css_suffix + "</style>")
+      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + globals.css_suffix + "</style>")
     }
   }
   
@@ -291,14 +282,14 @@ async function get_style(style_name, url, integrate_now){
 function set_style(style_name){
 
   //console.log("at set style", style_name)
-  let css_sfx = css_suffix
+  let css_sfx = globals.css_suffix
   if(!style_name){
     style_name="system"
     css_sfx=""
 
   }
 
-  if(styles[style_name].substr(0,8)==="https://"){
+  if(settings.workbook.styles[style_name].substr(0,8)==="https://"){
     // this style has not been fetched.  Get it now
     //console.log("in iff")
     get_style(style_name)
@@ -308,7 +299,7 @@ function set_style(style_name){
   if(style_tag.dataset.name!==style_name ){
     // only update the style tag if it is a differnt name
     style_tag.remove()
-    document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + styles[style_name] + css_sfx + "</style>")
+    document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + css_sfx + "</style>")
   }
   
 }
@@ -325,8 +316,8 @@ function build_panel(panel_name, show_close_button){
   div.id=panel_name
   div.style.display="none"
   div.innerHTML=panel_close_button(panel_name)
-  if(!panels.includes(panel_name)){
-    panels.push(panel_name)
+  if(!globals.panels.includes(panel_name)){
+    globals.panels.push(panel_name)
   }
   document.body.appendChild(div)
   if (show_close_button===undefined){
@@ -345,8 +336,8 @@ function show_automations(show_close_button){
   // get the list of functions
   //###################################################### need to iterate over all modules
   const html=['<h2 style="margin:0 0 0 1rem">Active Automations</h2><ol>']
-  //console.log("code panels", code_panels)
-  for(const code_panel of code_panels){
+  //console.log("code panels", globals.code_panels)
+  for(const code_panel of globals.code_panels){
     const editor = ace.edit(code_panel + "-content");
     const code = editor.getValue();
     const parsed_code=parse_code(code)
@@ -405,7 +396,7 @@ function show_automations(show_close_button){
 
 function show_panel(panel_name){
 
-  if(code_panels.includes(panel_name)){
+  if(globals.code_panels.includes(panel_name)){
     // set the size in case it is off
     if(tag(panel_name + "_function-names").length===0){
       // there are no function to run
@@ -418,27 +409,27 @@ function show_panel(panel_name){
       ;console.log("could not access ace.  This is expected",e)
     }
   }
-
-  if(panels.slice(0, 3).includes(panel_name) || code_panels.includes(panel_name)){
+  //################## 3 is  a problsm
+  if(globals.panels.slice(0, 3).includes(panel_name) || globals.code_panels.includes(panel_name)){
     set_style()
   }
   
  //console.log("trying",panel_name)
-  for(const panel of panels){
+  for(const panel of globals.panels){
     if(panel===panel_name){
      //console.log("showing", panel)
       if(tag("selector_"+ panel_name)){
         tag("selector_"+ panel_name).value=panel_name
       }
       tag(panel).style.display="block"  
-      panel_stack.push(panel)
+      globals.panel_stack.push(panel)
     }else{
       //console.log(" hiding", panel)
       tag(panel).style.display="none"  
     }
   }
 
-  if(code_panels.includes(panel_name)){
+  if(globals.code_panels.includes(panel_name)){
     //focus the ace editor
     try{
       ace.edit(panel_name + "-content").focus()
@@ -449,27 +440,6 @@ function show_panel(panel_name){
 
 }
 
-function toggle_theme(panel_name){
-  //console.log("changing theme")
-  const editor = ace.edit(panel_name + "-content");
-  let theme;
-
-  switch (editor.getOptions().theme){
-    case "ace/theme/tomorrow_night":
-      theme = "ace/theme/tomorrow"
-      break
-    case "ace/theme/tomorrow":
-      theme = "ace/theme/solarized_light"
-      break
-    default:
-      theme = "ace/theme/tomorrow_night"
-  }
-  global_theme=theme
-  editor.setOptions({
-    theme: theme
-  })
-  
-}
 
 function toggle_wrap(panel_name){
   const editor = ace.edit(panel_name + "-content");
@@ -478,15 +448,14 @@ function toggle_wrap(panel_name){
     globalThis=true
   }else{
     editor.setOptions({wrap: "off"})
-    global_wrap="off"
   }
 }
 
-function add_code_editor(module_name, code, module_xmlid, settings, options_in){
+function add_code_editor(module_name, code, module_xmlid, mod_settings, options_in){
   // settings are things gove is storing with the module
   // options are the options from the ace editor
-  
-  let options = global_settings.ace_options
+  console.log("settings", settings)
+  let options = settings.user.ace_options
 
 console.log(1)
   // not currently handling options at the editor level, so this block is diabled
@@ -495,15 +464,15 @@ console.log(1)
   // }
 
   //console.log(module_name, "options", options)
-  if(!settings){
-    settings={cursorPosition:{row: 0, column: 0}}
+  if(!mod_settings){
+    mod_settings={cursorPosition:{row: 0, column: 0}}
   }
   
   //console.log("adding ace editor", module_name, module_xmlid)
   const panel_name = "panel_" + module_name.toLowerCase().split(" ").join("_") + "_module"
-  code_panels.push(panel_name)
-  panel_labels.push(panel_name_to_panel_label(panel_name))
-  panels.push(panel_name)
+  globals.code_panels.push(panel_name)
+  globals.panel_labels.push(panel_name_to_panel_label(panel_name))
+  globals.panels.push(panel_name)
   build_panel(panel_name, false)
   tag(panel_name).dataset.module_name = module_name
   tag(panel_name).dataset.module_xmlid = module_xmlid
@@ -525,7 +494,7 @@ console.log(1)
   div.style.fontFamily="auto";
   div.style.fontSize = "1rem";
   div.style.padding=".2rem"
-  div.style.backgroundColor = "DimGray";
+  div.style.backgroundColor = "#eee";
   div.id=panel_name + "_editor-bar"
   editor_container.appendChild(div);
   console.log(3)
@@ -576,21 +545,21 @@ console.log(1)
     editor.on("blur", function () {
       window.event.target.parentElement.dataset.edited=true
     });
-    editor.setTheme("ace/theme/solarized_light");
-    if(!isNaN(options.fontSize)){
-      options.fontSize += "pt"
-    }
+    //editor.setTheme("ace/theme/solarized_light");
+    // if(!isNaN(options.fontSize)){
+    //   options.fontSize += "pt"
+    // }
     editor.setOptions(options);
     editor.session.setMode("ace/mode/javascript");
 
     //console.log("settings", settings)
-    editor.moveCursorTo(settings.cursorPosition.row, settings.cursorPosition.column)
+    editor.moveCursorTo(mod_settings.cursorPosition.row, mod_settings.cursorPosition.column)
 
     editor.commands.addCommand({  // toggle word wrap
       name: "wrap",
       bindKey: {win: "Alt-z", mac: "Alt-z"},
       exec: function(editor) {
-        for(const panel of code_panels){
+        for(const panel of globals.code_panels){
           if(tag(panel).style.display==="block"){
             // we found the one that is visible
             toggle_wrap(panel)
@@ -605,7 +574,7 @@ console.log(1)
       name: "run",
       bindKey: {win: "Ctrl-enter", mac: "Command-enter"},
       exec: function(editor) {
-        for(const panel of code_panels){
+        for(const panel of globals.code_panels){
           if(tag(panel).style.display==="block"){
             // we found the one that is visible
             code_runner(tag(panel + '_function-names').value, panel)
@@ -619,7 +588,7 @@ console.log(1)
       name: "run_shift",
       bindKey: {win: "alt-enter", mac: "alt-enter"},
       exec: function(editor) {
-        for(const panel of code_panels){
+        for(const panel of globals.code_panels){
           if(tag(panel).style.display==="block"){
             // we found the one that is visible
             code_runner(tag(panel + '_function-names').value, panel)
@@ -646,8 +615,8 @@ console.log(1)
   tag(panel_name).appendChild(editor_container)
 
   load_function_names_select(code, panel_name)
-  if(settings.func){
-    tag(panel_name + "_function-names").value=settings.func
+  if(mod_settings.func){
+    tag(panel_name + "_function-names").value=mod_settings.func
 
   }
 
@@ -689,9 +658,9 @@ function init_output(){
   
 }
 
-function rebuild_examples(){
+function rebuild_examples(gist_id){
   tag("panel_examples").innerHTML=""
-  fill_examples()
+  fill_examples(gist_id)
 }
 
 
@@ -702,7 +671,10 @@ function init_examples(){
 }
 
 
-function fill_examples(){
+function fill_examples(gist_ids){
+  //gist_ids is a comma delimited list of gist ids that hold examples
+  
+  if(!gist_ids){gist_ids=settings.workbook.examples_gist_id}
   const panel_name="panel_examples"
   const panel=tag(panel_name)
  //console.log("initializing examples")
@@ -711,43 +683,80 @@ function fill_examples(){
   div.className="content"
   div.id="e_content"
   panel.appendChild(div)
+  console.log("gist_ids",gist_ids, settings)
 
-console.log("about to fetch",global_settings.system.examples_url)
+  const gist_list=[]
+  console.log("gist_ids.split(",")",gist_ids.split(","))
+  for(const gist of gist_ids.split(",")){
+    console.log("gisting",gist)
+    gist_list.push(gist.trim())
+  }
+  console.log("gist_list",gist_list)
+  const html=[]
+  for(const gist of gist_list){
+    html.push(`<div id="${gist}"></div>`)
+  }
+  tag("e_content").innerHTML = html.join("");
 
-fetch(global_settings.system.examples_url)
+  for(let i=0;i<gist_list.length;i++){
+    console.log("gist_list[i]",gist_list[i])
+    get_example_html(gist_list[i],i+1)// get the gist and integrate the examples
+  }
+}
+
+
+function get_example_html(gist_id, sequence){
+
+  const url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
+  console.log("building examples",url)
+  
+  console.log("about to fetch",url)
+
+fetch(url)
 .then((response) => response.text())
 .then((json_text) => {
 //  console.log("json_text",json_text)
   const data=JSON.parse(json_text)
-  const html = [];
-  let i = 0;
-  //const data = jsyaml.load(yaml_data);
- //console.log("Json data", data)
-  for (const group of data) {
-    html.push("<h2>" + group.name + "</h2>");
-    for (const gist of group.snips) {
-      html.push(
-        '<p><a title="Copy Gist URL for import" onclick="copy(\'' +
-        gist.URL +
-        '\')"><i class="fas fa-link" style="cursor:pointer"></i></a> <a class="link" title="Show Code" onclick="show_example(' +
-        ++i +
-        ",'" +
-        gist.URL +
-        "')\"><b>" +
-        gist.name +
-        ":</b></a> " +
-        gist.description +
-        '</p><div id="page' +
-        i +
-        '"></div>'
-      );
-    }
+
+  // now we have the data from the api call.  need to organize it--especially for order
+  // make a list of objects with integers as keys so the order will be numerical
+  const filenames={}
+    for(const filename of Object.keys(data.files)){
+    filenames[parseFloat(filename.split("_").shift())] = filename
   }
-  document.getElementById("e_content").innerHTML = html.join("");
+  console.log("filenames",filenames)
+  let temp = data.description.split(":")
+  const html=[`<h2>${temp.shift()}</h2>`]
+  html.push(temp.join(":").trim())
+  // iterate for each file in the gist
+  let example_number=0
+  for(const key of Object.keys(filenames)){
+    example_number++
+    console.log(key, filenames[key])
+    temp=filenames[key].split(".")
+    temp.pop()//remove the extension
+    temp=temp.join(".").split("_")
+    temp.shift()// remove the sort sequence number
+    html.push(`<p><a class="link" title="Show Code" onclick="show_example('${sequence*100+example_number}','${data.files[filenames[key]].raw_url}')"><b>${example_number}. ${temp.join(" ")}</b></a> `);
+    temp=data.files[filenames[key]].content
+    if(temp.includes("*/")){
+      // there is a block comment.  assume it is a descriptions
+      html.push(temp.split("*/")[0].split("/*")[1])  
+    }
+    html.push(`</p><div id="page${sequence*100+example_number}"></div>`)
+  }
+  tag(gist_id).innerHTML = html.join("");
+
+  return
+
 });
 
 
 }
+
+
+
+
 
 function show_example(id, url) {
   // place the code in an editable box for user to see and play with
@@ -798,7 +807,7 @@ function show_example(id, url) {
           editor.on("blur", function () {
             update_script(id);
           });
-          editor.setTheme("ace/theme/solarized_light");
+          editor.setTheme("ace/theme/tomorrow");
           //editor.session.$worker.send("changeOptions", [{ asi: true }]);
           editor.setOptions({fontSize: "14pt"});
           editor.getSession().setUseWorker(false);
@@ -812,7 +821,6 @@ function show_example(id, url) {
                 globalThis=true
               }else{
                 editor.setOptions({wrap: "off"})
-                global_wrap="off"
               }              
             }
           })
@@ -943,7 +951,7 @@ function incorporate_code(code){
 }
 
 function write_module_to_workbook(code, panel_name){
-  let options = {theme:global_theme,wrap:global_wrap,fontSize:"14pt"}
+  let options = {fontSize:"14pt"}
   const settings = {
     cursorPosition:{row: 0, column: 0},
     func:tag(panel_name + "_function-names").value
@@ -972,13 +980,13 @@ function write_module_to_workbook(code, panel_name){
   }
 }
 
-function save_module_to_workbook(code, module_name, settings, xmlid, options){
+function save_module_to_workbook(code, module_name, mod_settings, xmlid, options){
   // options are currently being ignored, they are handled globally instead of at the module level
   // save to workbook
   Excel.run(async (excel)=>{
     //console.log("saving code", panel_name) 
-    if(!settings){
-      settings = {
+    if(!mod_settings){
+      mod_settings = {
         cursorPosition:{row: 0, column: 0},
       }
     }
@@ -986,7 +994,7 @@ function save_module_to_workbook(code, module_name, settings, xmlid, options){
     //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(settings))+"</settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
 
     // save module without options
-    const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(settings))+"</settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
+    const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(mod_settings))+"</settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
     if(xmlid){
       //console.log("updating xml", xmlid)
       const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
@@ -1001,10 +1009,9 @@ function save_module_to_workbook(code, module_name, settings, xmlid, options){
 
       //console.log("customXmlPart",customXmlPart.getXml())
       // this is a newly created module and needs to have a custom xmlid part made for it
-      code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
-      const settings = excel.workbook.settings;
-      settings.add("code_module_ids", code_module_ids);  // adds or sets the value
-      await excel.sync()
+      console.log("23443", settings)
+      settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
+      write_settings_to_workbook()
       return customXmlPart.id
   
     }
@@ -1075,8 +1082,8 @@ function get_panel_selector(panel){
   const panel_label=panel_name_to_panel_label(panel)
   const sel = document.createElement("select")
   //console.log("appending panel=====", panel)
-  if(!panel_labels.includes(panel_label)){
-    panel_labels.push(panel_label)
+  if(!globals.panel_labels.includes(panel_label)){
+    globals.panel_labels.push(panel_label)
   }
   sel.className="panel-selector"
   // put the options in this panel selector
@@ -1099,11 +1106,11 @@ function update_panel_selector(sel){
   while(sel.length>0){
      sel.remove(0)
   }
-  for (let i=0; i<panel_labels.length; i++) {
+  for (let i=0; i<globals.panel_labels.length; i++) {
     var option = document.createElement("option");
-    option.value = panel_label_to_panel_name(panel_labels[i]) 
+    option.value = panel_label_to_panel_name(globals.panel_labels[i]) 
    //console.log("-->", option.value)
-    option.text = panel_labels[i];
+    option.text = globals.panel_labels[i];
     option.className="panel-selector-option"
     sel.appendChild(option);
   }
@@ -1238,10 +1245,10 @@ function auto_exec(){
 
 
 function show_import_module(){
-  console.log("at show import", global_settings.system.module_to_import)
-  if(global_settings.system.module_to_import){
+  console.log("at show import", settings.workbook.module_to_import)
+  if(settings.workbook.module_to_import){
     console.log("in if")
-    tag("gist-url").value=global_settings.system.module_to_import
+    tag("gist-url").value=settings.workbook.module_to_import
   }
   toggle_element('import-module')
   tag('gist-url').focus()

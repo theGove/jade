@@ -12,22 +12,102 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.6.0/acorn.min.js" integrity="sha512-GxXGTaS+f1zewxxP8YJT8y74B9jarcQzPSP3j1+pYKk4pMmOikcKBZmjVP+U1+wAiAqv+FwISQXZnPRmdWXaEw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ext-language_tools.min.js" integrity="sha512-S7Whi8oQAQu/MK6AhBWufIJIyOvqORj+/1YDM9MaHeRalsZjzyYS7Usk4fsh+6J77PUhuk5v/BxaMDXRdWd1KA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
-    <script type="text/javascript" src="globals.js"></script>
     <script type="text/javascript" src="system.js"></script>
     <script type="text/javascript" src="public.js"></script>
     <script>
         Office.onReady((info) => {
         if (info.host === Office.HostType.Excel) {
             Excel.run(async (excel)=>{
-                const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
-                await excel.sync()
-                console.log("code_module_ids_from_settings",code_module_ids_from_settings.value)
-                if(!code_module_ids_from_settings.isNullObject){
-                    for(const xmlid of code_module_ids_from_settings.value){
-                        code_module_ids.push(xmlid)
-                    }
+              const xl_settings = excel.workbook.settings.getItemOrNullObject("jade").load("value");
+              //  const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
+              await excel.sync()
+              if(xl_settings.isNullObject){
+                // no settings so let's configuire some defaults
+                settings.user={
+                  ace_options:{
+                    selectionStyle:"line",
+                    highlightActiveLine:true,
+                    highlightSelectedWord:true,
+                    readOnly:false,
+                    copyWithEmptySelection:false,
+                    cursorStyle:"ace",
+                    mergeUndoDeltas:true,
+                    behavioursEnabled:true,
+                    wrapBehavioursEnabled:true,
+                    enableAutoIndent:true,
+                    showLineNumbers:true,
+                    hScrollBarAlwaysVisible:false,
+                    vScrollBarAlwaysVisible:false,
+                    highlightGutterLine:true,
+                    animatedScroll:false,
+                    showInvisibles:false,
+                    showPrintMargin:false,
+                    printMarginColumn:80,
+                    printMargin:80,
+                    fadeFoldWidgets:false,
+                    showFoldWidgets:true,
+                    displayIndentGuides:true,
+                    showGutter:true,
+                    fontSize:"14pt",
+                    scrollPastEnd:0,
+                    theme:"ace/theme/tomorrow",
+                    maxPixelHeight:0,
+                    useTextareaForIME:true,
+                    scrollSpeed:2,
+                    dragDelay:0,
+                    dragEnabled:true,
+                    focusTimeout:0,
+                    tooltipFollowsMouse:true,
+                    firstLineNumber:1,
+                    overwrite:false,
+                    newLineMode:"auto",
+                    useWorker:false,
+                    useSoftTabs:true,
+                    navigateWithinSoftTabs:false,
+                    tabSize:2,
+                    wrap:true,
+                    indentedSoftWrap:true,
+                    foldStyle:"markbegin",
+                    mode:"ace/mode/javascript",
+                    enableMultiselect:true,
+                    enableBlockSelect:true,
+                    tabSize:2,
+                    useSoftTabs:true
+                  } 
                 }
-                start_me_up()
+                settings.workbook={
+                  code_module_ids:[],
+                  examples_gist_id:"904983747625c3fdc8dfa69e0aaa0f08",
+                  styles:{
+                    system:null,
+                    none:"/*No Theme CSS Used*/",
+                    mvp:"https://cdnjs.cloudflare.com/ajax/libs/mvp.css/1.8.0/mvp.css",
+                    marx:"https://cdnjs.cloudflare.com/ajax/libs/marx/4.0.0/marx.min.css",
+                    water:"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css",
+                    "dark water":"https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css",
+                    sajura:"https://unpkg.com/sakura.css/css/sakura.css",
+                    tacit:"https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.5.5.min.css",
+                    pure:"https://unpkg.com/purecss@2.0.6/build/pure-min.css",
+                    picnic:"https://cdn.jsdelivr.net/npm/picnic",
+                    wing:"https://unpkg.com/wingcss",
+                    chota:"https://unpkg.com/chota@latest",
+                    bootstrap:"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css",
+                  }
+                }
+              }else{// if xl_settings a null object
+                //console.log("xl_settings",xl_settings.value)
+                settings.workbook=xl_settings.value.workbook
+                settings.user = xl_settings.value.user
+              }// if settings null object
+              console.log("before start_me_up, settings", settings)
+
+              // //console.log("code_module_ids_from_settings",code_module_ids_from_settings.value)
+              // if(!code_module_ids_from_settings.isNullObject){
+              //     for(const xmlid of code_module_ids_from_settings.value){
+              //         code_module_ids.push(xmlid)
+              //     }
+              // }
+              start_me_up()
             })
         }else{
             document.getElementById("sideload-msg").style.display = "flex"
@@ -43,7 +123,7 @@ body{
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color:rgb(252,239,205);
+    background-color: #EEE;/*rgb(252,239,205);*/
     font-size: 1.2rem;
     font-family: "Segoe UI Web (West European)",Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica Neue,sans-serif;
 }
@@ -74,7 +154,7 @@ body{
 
 .ace-heading-2{
     font-weight: 400;
-    color:#800000;
+    /*color:#800000;*/
     font-size: 2rem;
     text-align:center;
     word-wrap: break-word;
@@ -88,7 +168,7 @@ body{
         margin-left: auto;
         margin-right: auto;
         border-spacing: .5rem;
-
+        font-weight: 500;
 }
 .ace-clickable{
   cursor:pointer
@@ -130,13 +210,15 @@ body{
     position:absolute;
     top:0;
     right:0;
+    color:grey;
 }   
 .hidden{
     display:none
 }
+/*
 .fas, .far {
   color: #800000;
-}
+}*/
 .ace-form{
     text-align: left;
     font-size: 1rem;
@@ -203,6 +285,15 @@ body{
    color:inherit;
    text-decoration: none;
 }
+h2{
+  margin-bottom: 0;
+}
+.link{
+  cursor:pointer;
+}
+.jade-info{
+cursor:default;
+}
 
 </style>
 
@@ -211,13 +302,13 @@ body{
   <div id="panel_home">  
     <div class="ace-head">
         <div class="ace-logo">
-          <img width="90" height="90" src="https://byuis.github.io/taskpane/assets/logo-filled.png" alt="ACE" title="ACE" />
+          <img width="90" height="90" src="https://byuis.github.io/taskpane/assets/logo-filled.png" alt="JADE" title="JADE" />
         </div>
-        <h1 class="ace-heading-1">JADE</h1>
+        <h1 class="ace-heading-1">J.A.D.E.</h1>
       </div> 
     <div class="ace-body"> 
     <h2  class="ace-heading-2">JavaScript Automation Development Environment</h2>
-      <table id="menu" class="ace-table">
+      <table id="menu" class="ace-table"  style="margin-top: 1rem;">
         <tr class="ace-clickable hidden" onclick="open_editor()" id="open-editor">
             <td><i class="fas fa-laptop-code"></i></td>
             <td>Open Code Editor</td>
@@ -293,8 +384,11 @@ body{
           </tr>
           <tr id="settings" class="hidden">
             <td colspan=2 style="text-align:center" class="ace-form"> 
-                <div class="ace-form">Example List URL</div>
-                <input id="examples-url" style="width:15.4rem">
+                <div class="ace-form"><a class="jade-info" title="The ID of a github gist with examples">Examples Gist ID</a></div>
+                <input id="examples-gist-id" style="width:15.4rem">
+
+                <div class="ace-form" style="margin-top: .3rem;"><a class="jade-info" title="Load the code from this github gist when add-in loads.">Load Code Gist ID</a></div>
+                <input id="load-gist-id" style="width:15.4rem">
 
                 <div class="ace-form" style="margin-top: .3rem;">Editor Theme</div>
                 <select id="ace-theme" style="width:15.4rem">
