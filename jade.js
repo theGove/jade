@@ -1019,6 +1019,7 @@ class Jade{
   static get_example_html(gist_id, sequence){
 
     const url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
+    const gist_url=`https://gist.github.com/${gist_id}`
     console.log("building examples",url)
     
     console.log("about to fetch",url)
@@ -1037,7 +1038,7 @@ class Jade{
       }
       console.log("filenames",filenames)
       let temp = data.description.split(":")
-      const html=[`<h2 onclick("alert(444)")>${temp.shift()}</h2>`]
+      const html=[`<h2 style="cursor:pointer" title="Copy link to Example" onclick="Jade.copy_to_clipboard('${gist_url}')">${temp.shift()}</h2>`]
       html.push(temp.join(":").trim())
       // iterate for each file in the gist
       let example_number=0
