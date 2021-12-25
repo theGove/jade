@@ -1,6 +1,8 @@
 const settings={}
 
 class Jade{
+
+
   // Class Properties
   static css_suffix=""
   static panels=['panel_home','panel_examples']
@@ -8,7 +10,342 @@ class Jade{
   static code_panels=[]
   static panel_stack=['panel_home']
 
-  // Class Methods
+
+  // Class Methods exposed to be called by Jade Users
+
+
+  static async load_gist(gist_id){
+  // We can use gist as repository for the code then either
+  // consume it or import it.  Gists have multiple files
+  // that become modules in jsvba
+
+    console.log("gisting", gist_id)
+  try{
+      
+    const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
+    const data = await response.json()
+    for(const file of Object.values(data.files)){
+        console.log("===================================")
+        console.log(file.content)
+        console.log("===================================")
+        this.incorporate_code(file.content)
+    }
+    auto_exec()
+    this.incorporate_code("auto_exec=null")
+    
+  }catch(e){
+    console.log("Error fetching gist", e)
+  }
+  }
+  static async import_code_module(url_or_gist_id){
+      settings.workbook.module_to_import=url_or_gist_id
+      console.log("at import code mod", settings.workbook)
+
+      this.hide_element("import-module")
+      this.save_settings()
+      if(!url_or_gist_id){
+          return
+      }
+      let url=null
+      if(url_or_gist_id.substr(0,4)==="http"){
+          // check to see if GIST url
+          if(url_or_gist_id.toLowerCase().includes("gist.github.com")){
+              const url_data = url_or_gist_id.split("/")
+              url='https://api.github.com/gists/' + data[data.length-1] + "?" + new Date()
+          }else{
+              url=url_or_gist_id
+          }
+
+      }else{
+          // this looks like a gist id.  we should probably check it
+          // sometime.  for now, let's just assume it is
+          url = 'https://api.github.com/gists/' + url_or_gist_id + "?" + new Date()
+      }
+
+      // now we have the URL to process
+    
+      try{
+          const response = await fetch(url)
+          var data = await response.text()
+        }catch(e){
+          alert(e.message,"Error Loading Module")  
+          ;console.log("Error fetching gist", e)
+          return
+        }
+      //console.log("data",data)  
+      const files=[]  
+      // let's see if we got back json
+      try{
+          var gist_json=JSON.parse(data)
+          // there was no error parsing the json, so this must be gist manifest
+          // load the individual files
+          try{
+              console.log("parsing json from gist")
+              for(const file of Object.values(gist_json.files)){
+                  files.push({name:file.filename.split(".js")[0], code:file.content})
+              }  
+          }catch(e){
+              alert(e.message, "Error Parsing Gist")
+              return
+          }
+      }catch(e){
+          console.log("module is not json")
+          // json was not valid, assume we have js
+          // check to see if there is a comment that specifies a module name
+          //
+          let name = null
+          if(data.includes("ace.module:")){ 
+            try{
+                console.log("found ace lable")
+              name = JSON.parse(data.split("ace.module:")[1].split("*/")[0]).name
+            }catch(e){
+                console.log("ace label invalid")
+              const url_data=url.split("/")
+              name=url_data[url_data.length-1]
+            }
+          }
+          if(!name){
+            //either there was no comment to specify a name, or there was an error in reading it
+            // we won't overwrite a module unless it is named and the name is something other than "Code"
+            // so here, we are going to give it a number to make it unique
+              console.log("no name for you")
+            let x=1
+            while(!!tag(this.panel_label_to_panel_name("Code "+ x ))){x++}
+            files.push({name:"Code " + x, code:data})
+          }
+      }   
+
+      // now we should have files looking like this
+      // files:[{name:module1,content:"function zeta(){..."}, {name:module2,content:"function beta(){..."}]
+      // we need to add or update based on the name.
+      for(const file of files){
+          console.log(file.name,this.panel_label_to_panel_name(file.name))
+          if(!!tag(this.panel_label_to_panel_name(file.name+" Module"))){
+              // a module with this name already exists,  update
+              console.log("========= ready to update ============", file.name)
+              const editor=ace.edit(this.panel_label_to_panel_name(file.name) + "_module-content")
+              editor.setValue(file.code)
+              console.log(editor.getValue())
+          }else{
+              // no module with this name exists, append
+              this.add_code_module(file.name, file.code)
+          }
+      }
+      
+  }
+  static set_css(user_css){
+      this.css_suffix=user_css
+  }
+  static add_library(url){
+      // adds a JS library to the head section of the HTML sheet
+      const library = document.createElement('script');
+      library.setAttribute('src',url);
+      console.log("library",library)
+      document.head.appendChild(library);
+  }
+  static close_canvas(){
+      this.panel_stack.pop()
+      this.show_panel(this.panel_stack.pop())
+  }
+  static open_editor(){
+      this.show_panel(this.code_panels[0])
+  }
+  static open_output(){
+      this.show_panel("panel_output")
+  }
+  static open_automations(show_close_button){
+      this.show_automations(show_close_button)
+  }
+  static reset(){
+      this.show_panel("panel_home")
+  }
+  static show_html(html){
+      //A simple function that is mapped differntly for examples than for modules
+      //this is the module mapping
+      open_canvas("html", html)
+  }
+  static open_canvas(panel_name, html, show_panel_close_button, style_name){
+      if(style_name){
+          this.set_style(style_name)
+      }
+
+      if(!tag(panel_name)){
+          this.build_panel(panel_name)
+      }
+
+      if(!this.panels.includes(panel_name)){
+          this.panels.push(panel_name)
+      }
+
+      this.show_panel(panel_name)
+
+      if(html){
+          if(show_panel_close_button || show_panel_close_button===undefined){
+              tag(panel_name).innerHTML=this.panel_close_button(panel_name) + html
+          }else{
+              tag(panel_name).innerHTML= html
+          }
+          
+      }
+  }
+  static print(data, heading){
+      //if(!header && )
+      if(!tag("panel_output").lastChild.lastChild.firstChild.tagName && !heading){
+          //no output here, need a headdng
+          heading=""
+      }
+      if(heading!==undefined){
+          // there is a header, so make a new block
+          console.log("at data")
+          const div = document.createElement("div")
+          div.className="ace-output"
+          const header = document.createElement("div")
+          header.className="ace-output-header"  
+          const d = new Date()
+          let ampm=" am"
+          let hours=d.getHours()
+          if(hours >11){
+              ampm="pm"
+              if(hours>12){
+                  hours=hours-12
+              }
+          }
+          header.innerHTML = '<span class="ace-output-time">' + hours + ":" + ("0"+d.getMinutes()).slice(-2) + ":" + ("0"+d.getSeconds()).slice(-2) + ampm + "</span> " + heading + '<div class="ace-output-close"><i class="fas fa-times" style="color:white;margin-right:.3rem;cursor:pointer" onclick="this.parentNode.parentNode.parentNode.remove()"></div>'
+          const body = document.createElement("div")
+          body.className="ace-output-body"  
+          body.innerHTML = '<div style="margin:0;font-family: monospace;">' + data.replaceAll("\n","<br />")  + "<br />"+ "</div>"
+          div.appendChild(header)
+          div.appendChild(body)
+          tag("panel_output").appendChild(div)
+      }else{
+          // no header provided, append to most recently added
+          tag("panel_output").lastChild.lastChild.firstChild.innerHTML += data.replaceAll("\n","<br />") + "<br />"
+      }
+
+    
+  }
+  static open_examples(){
+      const panel_name="panel_examples"
+      this.set_style()
+      this.show_panel(panel_name)
+  }
+
+  // Class methods that still need work before shown to the public
+
+  static set_theme(theme_name){
+    this.set_style(theme_name)
+  }
+  static list_themes(){
+      for(const [theme, url] of Object.entries(settings.workbook.styles)){
+          console.log(theme, url)
+      }
+  }
+
+
+  // Class Methods NOT meant to be called by Jade Users
+  // It's not really a problem if they do, we just don't
+  // think they are useful and we don't document them.
+
+
+  static officeReady(info){// invoked when the office addin infrastructure has loaded
+      if (info.host === Office.HostType.Excel) {
+          Excel.run(async (excel)=>{
+            const xl_settings = excel.workbook.settings.getItemOrNullObject("jade").load("value");
+            //  const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
+            await excel.sync()
+            if(xl_settings.isNullObject){
+              // no settings so let's configuire some defaults
+              settings.user={
+                ace_options:{
+                  selectionStyle:"line",
+                  highlightActiveLine:true,
+                  highlightSelectedWord:true,
+                  readOnly:false,
+                  copyWithEmptySelection:false,
+                  cursorStyle:"ace",
+                  mergeUndoDeltas:true,
+                  behavioursEnabled:true,
+                  wrapBehavioursEnabled:true,
+                  enableAutoIndent:true,
+                  showLineNumbers:true,
+                  hScrollBarAlwaysVisible:false,
+                  vScrollBarAlwaysVisible:false,
+                  highlightGutterLine:true,
+                  animatedScroll:false,
+                  showInvisibles:false,
+                  showPrintMargin:false,
+                  printMarginColumn:80,
+                  printMargin:80,
+                  fadeFoldWidgets:false,
+                  showFoldWidgets:true,
+                  displayIndentGuides:true,
+                  showGutter:true,
+                  fontSize:"14pt",
+                  scrollPastEnd:0,
+                  theme:"ace/theme/tomorrow",
+                  maxPixelHeight:0,
+                  useTextareaForIME:true,
+                  scrollSpeed:2,
+                  dragDelay:0,
+                  dragEnabled:true,
+                  focusTimeout:0,
+                  tooltipFollowsMouse:true,
+                  firstLineNumber:1,
+                  overwrite:false,
+                  newLineMode:"auto",
+                  useWorker:false,
+                  useSoftTabs:true,
+                  navigateWithinSoftTabs:false,
+                  tabSize:2,
+                  wrap:true,
+                  indentedSoftWrap:true,
+                  foldStyle:"markbegin",
+                  mode:"ace/mode/javascript",
+                  enableMultiselect:true,
+                  enableBlockSelect:true,
+                  tabSize:2,
+                  useSoftTabs:true
+                } 
+              }
+              settings.workbook={
+                code_module_ids:[],
+                examples_gist_id:"904983747625c3fdc8dfa69e0aaa0f08",
+                styles:{
+                  system:null,
+                  none:"/*No Theme CSS Used*/",
+                  mvp:"https://cdnjs.cloudflare.com/ajax/libs/mvp.css/1.8.0/mvp.css",
+                  marx:"https://cdnjs.cloudflare.com/ajax/libs/marx/4.0.0/marx.min.css",
+                  water:"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css",
+                  "dark water":"https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css",
+                  sajura:"https://unpkg.com/sakura.css/css/sakura.css",
+                  tacit:"https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.5.5.min.css",
+                  pure:"https://unpkg.com/purecss@2.0.6/build/pure-min.css",
+                  picnic:"https://cdn.jsdelivr.net/npm/picnic",
+                  wing:"https://unpkg.com/wingcss",
+                  chota:"https://unpkg.com/chota@latest",
+                  bootstrap:"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css",
+                }
+              }
+            }else{// if xl_settings a null object
+              //console.log("xl_settings",xl_settings.value)
+              settings.workbook=xl_settings.value.workbook
+              settings.user = xl_settings.value.user
+            }// if settings null object
+            console.log("before start_me_up, settings", settings)
+
+            // //console.log("code_module_ids_from_settings",code_module_ids_from_settings.value)
+            // if(!code_module_ids_from_settings.isNullObject){
+            //     for(const xmlid of code_module_ids_from_settings.value){
+            //         code_module_ids.push(xmlid)
+            //     }
+            // }
+            this.start_me_up()
+          })
+      }else{
+          document.getElementById("sideload-msg").style.display = "flex"
+          document.getElementById("menu").style.display = "none"
+      }
+  }
   static start_me_up(){
   //console.log("at start_me_up")
   settings.workbook.styles.system=tag("head_style").innerText
@@ -43,15 +380,15 @@ class Jade{
   window.addEventListener('resize', function(event) {
     //console.log("hi")
     for(const panel_name of Jade.code_panels){
-      tag(panel_name + "_editor-page").style.height = editor_height()
+      tag(panel_name + "_editor-page").style.height = this.editor_height()
     }
   }, true);
-  init_examples()
-  init_output()
+  this.init_examples()
+  this.init_output()
   
   // ---------------- Initializing Code Editors -----------------------------
   if(settings.workbook.code_module_ids.length>0){// show the button to view code modules
-    show_element("open-editor")
+    this.show_element("open-editor")
   }
   //console.log("at init_code_editors       settings.workbook.code_module_ids",settings.workbook.code_module_ids)
   Excel.run(async (excel)=>{
@@ -70,7 +407,7 @@ class Jade{
       //console.log("settings2", JSON.parse(settings))
       //console.log("options", options)
       //console.log("options-parsed", JSON.parse(options))
-      add_code_editor(module_name, module_code,code_module_id, JSON.parse(settings), JSON.parse(options))        
+      this.add_code_editor(module_name, module_code,code_module_id, JSON.parse(settings), JSON.parse(options))        
     }
   })
 
@@ -78,7 +415,7 @@ class Jade{
   console.log("end of  start_me_up, settings", settings)
   }
   static configure_settings(){
-    toggle_element('settings');
+    this.toggle_element('settings');
     if(!tag('settings').className.includes("hidden")){
       //tag('ace-theme').focus();
       tag('settings-button').scrollIntoView(true);
@@ -106,7 +443,7 @@ class Jade{
   
     if(tag("examples-gist-id").value && settings.workbook.examples_gist_id!==tag("examples-gist-id").value){
       // different examples specified.  Need to rebuild
-      rebuild_examples(tag("examples-gist-id").value)
+      this.rebuild_examples(tag("examples-gist-id").value)
     }
     settings.workbook.examples_gist_id=tag("examples-gist-id").value
     settings.workbook.load_gist_id=tag("load-gist-id").value
@@ -126,1141 +463,1082 @@ class Jade{
         settings.user.ace_options.wrap="off"
     }
     //console.log(settings.user.ace_options)
-    apply_editor_options(settings.user.ace_options)
+    this.apply_editor_options(settings.user.ace_options)
   
-    await Jade.write_settings_to_workbook()
+    await this.write_settings_to_workbook()
   
-    hide_element('settings')
+    this.hide_element('settings')
   }
   static async write_settings_to_workbook(){
-    console.log("at Jade.write_settings_to_workbook", settings)
+    console.log("at this.write_settings_to_workbook", settings)
     await Excel.run(async (excel)=>{
       const xl_settings = excel.workbook.settings;
       xl_settings.add("jade", settings);  // adds or sets the value
       await excel.sync()
     })
   }
-}
-
-
-
-function apply_editor_options(options){
-  for(const panel_name of Jade.code_panels){
-    //console.log("updating options on ", panel_name)
-    const editor = ace.edit(panel_name + "-content");
-    editor.setOptions(options)
-  }
-}
-
-
-async function submit_feedback(){
-  // send feedback to the google form
-  const message=[]
-  if(tag("fb-type").value===""){message.push("<li>You must indicate the <b>type</b> of your feedback.</li>")}
-  if(tag("fb-text").value===""){message.push("<li>You must provide the <b>text</b> of your feedback.</li>")}
-  if(tag("fb-platform").value===""){message.push("<li>You must provide the <b>platform</b> you are using.</li>")}
-  if(message.length===0){
-    // ready to submit
-    const form_data=[]
-    form_data.push("entry.1033992853=")
-    form_data.push(encodeURIComponent(tag("fb-type").value))
-    form_data.push("&entry.482647522=")
-    form_data.push(encodeURIComponent(tag("fb-platform").value))
-    form_data.push("&entry.1230850697=")
-    form_data.push(encodeURIComponent(tag("fb-email").value))
-    form_data.push("&entry.1009690762=")
-    form_data.push(encodeURIComponent(tag("fb-text").value))
-    form_data.push("&entry.64124153=")
-    form_data.push(encodeURIComponent("Addin"))
-
-    tag("fb-message").innerHTML=""
-    
-    const options = {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form_data.join("")
-    };
-    //console.log("form data",form_data.join(""))
-    try{
-    const response = await fetch("https://docs.google.com/forms/u/0/d/e/1FAIpQLSeRCZKHMU0HvXEiia8dn6hL0DfGoAH-PCJZolfiN1S_O90eSQ/formResponse", options)
-    //console.log("reson",response.status)
-    const data = await response.text()
-    //console.log("data",data)
-    tag("fb-message").style.color="green"
-
-    //console.log("=====================",tag("fb-type").value)
-    switch(tag("fb-type").value){
-      case "Feature Resuest":
-        message.push("Thanks for your feedback. Were not sure when we'll be updaing next but thanks for helping us understand your needs.")
-        break
-      case "Report Issue":
-        message.push("Thanks for reporing this issue. While we cannot respond to every problem report, we'll do what we can.")
-        break
-      case "Offer to help with development":
-        message.push("Thanks for offering to help on this project.  We'll take a look at your comment and get back to you--if you provided a valid email address.")
-        break
-      case "Praise for Addin":
-        message.push("Thanks a million. We thrive on positive feedback!")
-        break
-      default:  
-        message.push("Thanks for asking this question. While we cannot respond to every question, we'll do what we can.")
+  static apply_editor_options(options){
+    for(const panel_name of this.code_panels){
+      //console.log("updating options on ", panel_name)
+      const editor = ace.edit(panel_name + "-content");
+      editor.setOptions(options)
     }
-    tag("fb-message").innerHTML=message.join("")
-    tag("fb-message").scrollIntoView(true);
-    setTimeout(function() {
-      hide_element('survey')
+  }
+  static async submit_feedback(){
+    // send feedback to the google form
+    const message=[]
+    if(tag("fb-type").value===""){message.push("<li>You must indicate the <b>type</b> of your feedback.</li>")}
+    if(tag("fb-text").value===""){message.push("<li>You must provide the <b>text</b> of your feedback.</li>")}
+    if(tag("fb-platform").value===""){message.push("<li>You must provide the <b>platform</b> you are using.</li>")}
+    if(message.length===0){
+      // ready to submit
+      const form_data=[]
+      form_data.push("entry.1033992853=")
+      form_data.push(encodeURIComponent(tag("fb-type").value))
+      form_data.push("&entry.482647522=")
+      form_data.push(encodeURIComponent(tag("fb-platform").value))
+      form_data.push("&entry.1230850697=")
+      form_data.push(encodeURIComponent(tag("fb-email").value))
+      form_data.push("&entry.1009690762=")
+      form_data.push(encodeURIComponent(tag("fb-text").value))
+      form_data.push("&entry.64124153=")
+      form_data.push(encodeURIComponent("Addin"))
+  
       tag("fb-message").innerHTML=""
-    }, 10000);
-    }catch(e){
-      //console.log("form error: ",e)
+      
+      const options = {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form_data.join("")
+      };
+      //console.log("form data",form_data.join(""))
+      try{
+      const response = await fetch("https://docs.google.com/forms/u/0/d/e/1FAIpQLSeRCZKHMU0HvXEiia8dn6hL0DfGoAH-PCJZolfiN1S_O90eSQ/formResponse", options)
+      //console.log("reson",response.status)
+      const data = await response.text()
+      //console.log("data",data)
+      tag("fb-message").style.color="green"
+  
+      //console.log("=====================",tag("fb-type").value)
+      switch(tag("fb-type").value){
+        case "Feature Resuest":
+          message.push("Thanks for your feedback. Were not sure when we'll be updaing next but thanks for helping us understand your needs.")
+          break
+        case "Report Issue":
+          message.push("Thanks for reporing this issue. While we cannot respond to every problem report, we'll do what we can.")
+          break
+        case "Offer to help with development":
+          message.push("Thanks for offering to help on this project.  We'll take a look at your comment and get back to you--if you provided a valid email address.")
+          break
+        case "Praise for Addin":
+          message.push("Thanks a million. We thrive on positive feedback!")
+          break
+        default:  
+          message.push("Thanks for asking this question. While we cannot respond to every question, we'll do what we can.")
+      }
+      tag("fb-message").innerHTML=message.join("")
+      tag("fb-message").scrollIntoView(true);
+      setTimeout(function() {
+        Jade.hide_element('survey')
+        tag("fb-message").innerHTML=""
+      }, 10000);
+      }catch(e){
+        //console.log("form error: ",e)
+        tag("fb-message").style.color="red"
+        tag("fb-message").innerHTML='Oops.  It looks as though there was a network error.  Your can tray again later or submit at our <a href="https://docs.google.com/forms/d/e/1FAIpQLSeRCZKHMU0HvXEiia8dn6hL0DfGoAH-PCJZolfiN1S_O90eSQ/viewform?usp=pp_url&entry.64124153=web" target="_blank">Google Form<a>.'  
+        window.scrollTo(0,document.body.scrollHeight);
+        tag("fb-message").scrollIntoView(true);
+      }
+      
+    }else{
       tag("fb-message").style.color="red"
-      tag("fb-message").innerHTML='Oops.  It looks as though there was a network error.  Your can tray again later or submit at our <a href="https://docs.google.com/forms/d/e/1FAIpQLSeRCZKHMU0HvXEiia8dn6hL0DfGoAH-PCJZolfiN1S_O90eSQ/viewform?usp=pp_url&entry.64124153=web" target="_blank">Google Form<a>.'  
-      window.scrollTo(0,document.body.scrollHeight);
+      tag("fb-message").innerHTML="<ul>" + message.join("") + "</ul>"
       tag("fb-message").scrollIntoView(true);
     }
     
-  }else{
-    tag("fb-message").style.color="red"
-    tag("fb-message").innerHTML="<ul>" + message.join("") + "</ul>"
-    tag("fb-message").scrollIntoView(true);
   }
-  
-}
-
-function add_code_module(name,code){
-  // a module built with whatever code is in default_code
-  if(!code){// no code is pased in, determine which default code to import
-    if(Jade.code_panels.length === 0){
-      code = default_code()
-    }else{  
-      code = default_code("panel_" + name.toLowerCase().split(" ").join("_") + "_module")
+  static add_code_module(name,code){
+    // a module built with whatever code is in this.default_code
+    if(!name){name="code"}
+    // check for duplicate name--that wreaks havoc
+    let found_panel=false
+    for(const panel_name of this.code_panels){
+      console.log("panel_name",panel_name,this.panel_label_to_panel_name(name))
+      if(panel_name === this.panel_label_to_panel_name(name) + "_module"){
+        //we have a match, and that's a no-no
+        alert('A module named "'+name+'" already exists in this workbook.  <br><br>Choose a differnt name.',"Invalid Module Name")
+        return
+      }
     }
-  }
-  if(!name){name="code"}
-  add_code_editor(name, code, "")
-  hide_element("add-module")
-  show_element("open-editor")
-  show_panel(Jade.code_panels[Jade.code_panels.length-1])
-  write_module_to_workbook(code,Jade.code_panels[Jade.code_panels.length-1])
-}
-
-async function get_code_from_gist(url){
-  const response = await fetch(adjust_url_for_gist(url))
-  const data = await response.text()
-  return data
-}
-
-function adjust_url_for_gist(url){
-  return url.replace("gist.github.com", "gist.githubusercontent.com") + "/raw/?" + new Date()
-}
 
 
-async function get_style(style_name, url, integrate_now){
-
-  if(integrate_now===undefined){
-     integrate_now=true
-  }
-
-  if(!settings.workbook.styles[style_name]){
-    settings.workbook.styles[style_name]=url
-  }
-
-  if(settings.workbook.styles[style_name].substr(0,8)==="https://"){
-    // the style has not yet been fetched
-    //console.log("fetching")
-    const response = await fetch(settings.workbook.styles[style_name])
-    const data = await response.text()
-    //console.log("data",data)
-    settings.workbook.styles[style_name]=data
-    if(integrate_now){
-      document.getElementById("head_style").remove()
-      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + Jade.css_suffix + "</style>")
+    if(!code){// no code is pased in, determine which default code to import
+      if(this.code_panels.length === 0){
+        code = this.default_code()
+      }else{  
+        code = this.default_code("panel_" + name.toLowerCase().split(" ").join("_") + "_module")
+      }
     }
+
+
+
+    this.add_code_editor(name, code, "")
+    this.hide_element("add-module")
+    this.show_element("open-editor")
+    this.show_panel(this.code_panels[this.code_panels.length-1])
+    this.write_module_to_workbook(code,this.code_panels[this.code_panels.length-1])
   }
+  static async get_style(style_name, url, integrate_now){
+
+    if(integrate_now===undefined){
+       integrate_now=true
+    }
   
-}
-
-function set_style(style_name){
-
-  //console.log("at set style", style_name)
-  let css_sfx = Jade.css_suffix
-  if(!style_name){
-    style_name="system"
-    css_sfx=""
-
-  }
-
-  if(settings.workbook.styles[style_name].substr(0,8)==="https://"){
-    // this style has not been fetched.  Get it now
-    //console.log("in iff")
-    get_style(style_name)
-  }
-
-  const style_tag = document.getElementById("head_style")
-  if(style_tag.dataset.name!==style_name ){
-    // only update the style tag if it is a differnt name
-    style_tag.remove()
-    document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + css_sfx + "</style>")
-  }
+    if(!settings.workbook.styles[style_name]){
+      settings.workbook.styles[style_name]=url
+    }
   
-}
-
-
-function panel_close_button(panel_name){
-  return '<div id="close_' + panel_name + '" onclick="close_canvas(\'' + panel_name + '\')" class="top-corner" style="padding:5px 5px 0 5px;margin:5px 15px 0 0; cursor:pointer"><i class="far fa-window-close fa-2x"></i></i></div>'
-}
-
-
-
-function build_panel(panel_name, show_close_button){
-  const div=document.createElement("div");
-  div.id=panel_name
-  div.style.display="none"
-  div.innerHTML=panel_close_button(panel_name)
-  if(!Jade.panels.includes(panel_name)){
-    Jade.panels.push(panel_name)
-  }
-  document.body.appendChild(div)
-  if (show_close_button===undefined){
-    show_close_button=true
-  }
-  if(!show_close_button){
-    hide_element("close_" + panel_name)
-  }
-}
-
-
-
-function show_automations(show_close_button){
-  const panel_name="panel_listings"
-
-  // get the list of functions
-  //###################################################### need to iterate over all modules
-  const html=['<h2 style="margin:0 0 0 1rem">Active Automations</h2><ol>']
-  //console.log("code panels", Jade.code_panels)
-  for(const code_panel of Jade.code_panels){
-    const editor = ace.edit(code_panel + "-content");
-    const code = editor.getValue();
-    const parsed_code=parse_code(code)
-
-
-   //console.log(parsed_code)
+    if(settings.workbook.styles[style_name].substr(0,8)==="https://"){
+      // the style has not yet been fetched
+      //console.log("fetching")
+      const response = await fetch(settings.workbook.styles[style_name])
+      const data = await response.text()
+      //console.log("data",data)
+      settings.workbook.styles[style_name]=data
+      if(integrate_now){
+        document.getElementById("head_style").remove()
+        document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + this.css_suffix + "</style>")
+      }
+    }
     
+  }
+  static set_style(style_name){
 
+    //console.log("at set style", style_name)
+    let css_sfx = this.css_suffix
+    if(!style_name){
+      style_name="system"
+      css_sfx=""
+  
+    }
+  
+    if(settings.workbook.styles[style_name].substr(0,8)==="https://"){
+      // this style has not been fetched.  Get it now
+      //console.log("in iff")
+      this.get_style(style_name)
+    }
+  
+    const style_tag = document.getElementById("head_style")
+    if(style_tag.dataset.name!==style_name ){
+      // only update the style tag if it is a differnt name
+      style_tag.remove()
+      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + css_sfx + "</style>")
+    }
+    
+  }
+  static panel_close_button(panel_name){
+    return '<div id="close_' + panel_name + '" onclick="Jade.close_canvas(\'' + panel_name + '\')" class="top-corner" style="padding:5px 5px 0 5px;margin:5px 15px 0 0; cursor:pointer"><i class="far fa-window-close fa-2x"></i></i></div>'
+  }
+  static build_panel(panel_name, show_close_button){
+    const div=document.createElement("div");
+    div.id=panel_name
+    div.style.display="none"
+    div.innerHTML=this.panel_close_button(panel_name)
+    if(!this.panels.includes(panel_name)){
+      this.panels.push(panel_name)
+    }
+    document.body.appendChild(div)
+    if (show_close_button===undefined){
+      show_close_button=true
+    }
+    if(!show_close_button){
+      this.hide_element("close_" + panel_name)
+    }
+  }
+  static show_automations(show_close_button){
+    const panel_name="panel_listings"
+  
+    // get the list of functions
+    //###################################################### need to iterate over all modules
+    const html=['<h2 style="margin:0 0 0 1rem">Active Automations</h2><ol>']
+    //console.log("code panels", this.code_panels)
+    for(const code_panel of this.code_panels){
+      const editor = ace.edit(code_panel + "-content");
+      const code = editor.getValue();
+      const parsed_code=this.parse_code(code)
+  
+  
+     //console.log(parsed_code)
+      
+  
+      for(const element of parsed_code.body){
+        let call_stmt = null
+        if(element.type==="FunctionDeclaration"){
+          if(element.id && element.id.name){
+            // this is a named function
+            if(element.params.length===0){
+              //there are no params. it is callable
+              call_stmt=element.id.name + "()"
+            } else if(element.params.length===1){
+              // there is one param.  
+              if(element.async){
+                if(("excel ctx context").includes(element.params[0].name)){
+                  // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
+                  call_stmt = "Excel.run(" + element.id.name + ")"
+                }
+              }
+            }  
+            if(call_stmt){ // this is a function we can run directly
+              // check for comment
+              const function_text = window[ element.id.name]+''
+             //console.log(function_text)
+  
+  
+              if(function_text.includes("ace.listing:")){ // this is a function we can run directly and it as the comment
+                //console.log("found a comment", func)
+                const comment = function_text.split("ace.listing:")[1].split("*/")[0]
+                try{
+                  const comment_json=JSON.parse(comment)
+                  html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
+                }catch(e){
+                  ;console.log("ace.listing was not valid JSON", comment)        
+                }
+              }//for function on code page
+            } 
+          }
+        }
+      } 
+    }
+  
+    if(html.length===1){
+      //Did not find any properly configured functions
+      html.push("There are currently no active automations in this workbook.")
+    }else{
+      html.push("</ul>")  
+    }
+    this.open_canvas("panel_listings",html.join(""), show_close_button)
+  }
+  static show_panel(panel_name){
+
+    if(this.code_panels.includes(panel_name)){
+      // set the size in case it is off
+      if(tag(panel_name + "_function-names").length===0){
+        // there are no function to run
+        this.hide_element(panel_name + "_function-names")
+      }
+      tag(panel_name + "_editor-page").style.height = this.editor_height()
+      try{
+        ace.edit(panel_name + "-content").focus()
+      }catch(e){
+        ;console.log("could not access ace.  This is expected",e)
+      }
+    }
+    //################## 3 is  a problsm
+    if(this.panels.slice(0, 3).includes(panel_name) || this.code_panels.includes(panel_name)){
+      this.set_style()
+    }
+    
+   //console.log("trying",panel_name)
+    for(const panel of this.panels){
+      if(panel===panel_name){
+       //console.log("showing", panel)
+        if(tag("selector_"+ panel_name)){
+          tag("selector_"+ panel_name).value=panel_name
+        }
+        tag(panel).style.display="block"  
+        this.panel_stack.push(panel)
+      }else{
+        //console.log(" hiding", panel)
+        tag(panel).style.display="none"  
+      }
+    }
+  
+    if(this.code_panels.includes(panel_name)){
+      //focus the ace editor
+      try{
+        ace.edit(panel_name + "-content").focus()
+      }catch(e){
+        ;console.log("could not access ace.  This is expected",e)
+      }
+    }
+  
+  }
+  static toggle_wrap(panel_name){
+    const editor = ace.edit(panel_name + "-content");
+    if(editor.getOptions().wrap==="off"){
+      editor.setOptions({wrap: true})
+      globalThis=true
+    }else{
+      editor.setOptions({wrap: "off"})
+    }
+  }
+  static add_code_editor(module_name, code, module_xmlid, mod_settings, options_in){
+    // settings are things gove is storing with the module
+    // options are the options from the ace editor
+    console.log("settings", settings)
+    let options = settings.user.ace_options
+  
+  console.log(1)
+    // not currently handling options at the editor level, so this block is diabled
+    // if(options_in){// default options for the editor
+    //   options=options_in
+    // }
+  
+    //console.log(module_name, "options", options)
+    if(!mod_settings){
+      mod_settings={cursorPosition:{row: 0, column: 0}}
+    }
+    
+    //console.log("adding ace editor", module_name, module_xmlid)
+    const panel_name = "panel_" + module_name.toLowerCase().split(" ").join("_") + "_module"
+    this.code_panels.push(panel_name)
+    this.panel_labels.push(this.panel_name_to_panel_label(panel_name))
+    this.panels.push(panel_name)
+    this.build_panel(panel_name, false)
+    tag(panel_name).dataset.module_name = module_name
+    tag(panel_name).dataset.module_xmlid = module_xmlid
+    
+    console.log(2)
+  
+   //console.log("initializing examples", tag(panel_name))
+    
+    tag(panel_name).appendChild(this.get_panel_selector(panel_name))
+    const editor_container = document.createElement("div")
+    editor_container.className=panel_name+"-content"
+  
+    let div = document.createElement("div");
+    div.style.padding=".2rem"
+    div.style.verticalAlign="middle"
+    div.innerHTML = '<button title="Save code to workbook" onclick="Jade.update_editor_script(\'' + panel_name + '\')">Save</button> <button  title="Save code to workbook and execute" onclick="Jade.code_runner(tag(\'' + panel_name + '_function-names' + '\').value,\'' + panel_name + '\')">Run</button> <select id="' + panel_name + '_function-names"></select>';
+    div.style.height="22px"
+    div.style.fontFamily="auto";
+    div.style.fontSize = "1rem";
+    div.style.padding=".2rem"
+    div.style.backgroundColor = "#eee";
+    div.id=panel_name + "_editor-bar"
+    editor_container.appendChild(div);
+    console.log(3)
+  
+  
+    //console.log("=======================================")
+    //console.log(div);
+    //console.log(div.clientHeight);
+  
+    const box = document.createElement("div");
+    box.id = panel_name + "_editor-page";
+    box.style.width = "100%";
+    box.style.height = this.editor_height()
+    box.style.display = "inline-block";
+    box.style.position = "relative";
+    console.log(4)
+  
+   //console.log("document",document.body.clientHeight);
+   //console.log("scr",tag("panel_code_editor").Height);
+  
+  
+    div = document.createElement("div");
+    div.id = panel_name + "-content";
+    div.dataset.edited=false
+    div.innerHTML = code.toHtmlEntities();
+  
+    box.appendChild(div);
+    console.log(5)
+  
+  
+    editor_container.appendChild(box);
+  
+    //        elem.innerHTML = '<pre id="pre' + id + '">' + gist.script.content.split("<").join("&lt;") + '</pre>'
+  
+    const scriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      script.onload = resolve;
+      script.onerror = reject;
+      script.async = true;
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
+    });
+    console.log(6)
+  
+    scriptPromise.then(() => {
+      const editor = ace.edit(panel_name + "-content");
+      
+      editor.on("blur", function () {
+        window.event.target.parentElement.dataset.edited=true
+      });
+      //editor.setTheme("ace/theme/solarized_light");
+      // if(!isNaN(options.fontSize)){
+      //   options.fontSize += "pt"
+      // }
+      editor.setOptions(options);
+      editor.session.setMode("ace/mode/javascript");
+  
+      //console.log("settings", settings)
+      editor.moveCursorTo(mod_settings.cursorPosition.row, mod_settings.cursorPosition.column)
+  
+      editor.commands.addCommand({  // toggle word wrap
+        name: "wrap",
+        bindKey: {win: "Alt-z", mac: "Alt-z"},
+        exec: function(editor) {
+          for(const panel of this.code_panels){
+            if(tag(panel).style.display==="block"){
+              // we found the one that is visible
+              this.toggle_wrap(panel)
+              break//exit the loop
+            }
+          }
+          
+        }
+      })
+  
+      editor.commands.addCommand({  // could do ctrl+r but want to be parallel with save
+        name: "run",
+        bindKey: {win: "Ctrl-enter", mac: "Command-enter"},
+        exec: function(editor) {
+          for(const panel of this.code_panels){
+            if(tag(panel).style.display==="block"){
+              // we found the one that is visible
+              this.code_runner(tag(panel + '_function-names').value, panel)
+              break//exit the loop
+            }
+          }
+        }
+      })
+  
+      editor.commands.addCommand({  // could do ctrl+r but want to be parallel with save
+        name: "run_shift",
+        bindKey: {win: "alt-enter", mac: "alt-enter"},
+        exec: function(editor) {
+          for(const panel of this.code_panels){
+            if(tag(panel).style.display==="block"){
+              // we found the one that is visible
+              this.code_runner(tag(panel + '_function-names').value, panel)
+              break//exit the loop
+            }
+          }
+        }
+      })
+  
+    });
+  
+    
+  
+    editor_container.style.display = "block";
+  
+    const parsed_code=this.parse_code(code)
+    if(!parsed_code.error){
+      // only incorporate the code if it is free of syntax errors
+      this.incorporate_code(code)  
+    }
+  
+    
+    
+    tag(panel_name).appendChild(editor_container)
+  
+    this.load_function_names_select(code, panel_name)
+    if(mod_settings.func){
+      tag(panel_name + "_function-names").value=mod_settings.func
+  
+    }
+  
+    // AutoExecutable function
+   //console.log("about to autoexec")
+    try{
+     //console.log("in try")
+      auto_exec()
+    }catch(e){
+     ;console.log("catch",e)
+    }  
+  }
+  static code_runner(script_name,panel_name){
+    //console.log(script_name,panel_name)
+    if (tag(panel_name + "-content").dataset.edited==="true"){
+      if(!this.update_editor_script(panel_name)){
+        // this.update_editor_script returns false if there is a 
+        // syntax error.  Don't run the old code
+        return
+      }
+    }
+    
+    if(script_name.includes("(excel)")){
+      setTimeout("Excel.run(" + script_name.split("(")[0] + ")", 0) //run the function
+    }else{
+      setTimeout(script_name, 0) //run the function
+    }
+  }
+  static init_output(){
+    const panel_name="panel_output"
+    this.build_panel(panel_name, false)
+    const panel=tag(panel_name)
+   //console.log("initializing examples")
+    panel.appendChild(this.get_panel_selector(panel_name))
+    this.print('This panel shows the results of your calls to the "print" function.  Use "print(data)" to append text to the most recently printed block.', "About the Output Panel")
+    this.print('\nUse "print(data, heading)" to start a new block.')
+    
+  }
+  static rebuild_examples(gist_id){
+    tag("panel_examples").innerHTML=""
+    this.fill_examples(gist_id)
+  }
+  static init_examples(){
+    this.build_panel("panel_examples", false)
+    this.fill_examples()
+  }  
+  static fill_examples(gist_ids){
+    //gist_ids is a comma delimited list of gist ids that hold examples
+    
+    if(!gist_ids){gist_ids=settings.workbook.examples_gist_id}
+    const panel_name="panel_examples"
+    const panel=tag(panel_name)
+   //console.log("initializing examples")
+    panel.appendChild(this.get_panel_selector(panel_name))
+    const div = document.createElement("div")
+    div.className="content"
+    div.id="e_content"
+    panel.appendChild(div)
+    console.log("gist_ids",gist_ids, settings)
+  
+    const gist_list=[]
+    console.log("gist_ids.split(",")",gist_ids.split(","))
+    for(const gist of gist_ids.split(",")){
+      console.log("gisting",gist)
+      gist_list.push(gist.trim())
+    }
+    console.log("gist_list",gist_list)
+    const html=[]
+    for(const gist of gist_list){
+      html.push(`<div id="${gist}"></div>`)
+    }
+    tag("e_content").innerHTML = html.join("");
+  
+    for(let i=0;i<gist_list.length;i++){
+      console.log("gist_list[i]",gist_list[i])
+      this.get_example_html(gist_list[i],i+1)// get the gist and integrate the examples
+    }
+  }
+  static get_example_html(gist_id, sequence){
+
+    const url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
+    console.log("building examples",url)
+    
+    console.log("about to fetch",url)
+  
+    fetch(url)
+    .then((response) => response.text())
+    .then((json_text) => {
+    //  console.log("json_text",json_text)
+      const data=JSON.parse(json_text)
+  
+      // now we have the data from the api call.  need to organize it--especially for order
+      // make a list of objects with integers as keys so the order will be numerical
+      const filenames={}
+        for(const filename of Object.keys(data.files)){
+        filenames[parseFloat(filename.split("_").shift())] = filename
+      }
+      console.log("filenames",filenames)
+      let temp = data.description.split(":")
+      const html=[`<h2 onclick("alert(444)")>${temp.shift()}</h2>`]
+      html.push(temp.join(":").trim())
+      // iterate for each file in the gist
+      let example_number=0
+      for(const key of Object.keys(filenames)){
+        example_number++
+        console.log(key, filenames[key])
+        temp=filenames[key].split(".")
+        temp.pop()//remove the extension
+        temp=temp.join(".").split("_")
+        temp.shift()// remove the sort sequence number
+        html.push(`<p><a class="link" title="Show Code" onclick="Jade.show_example('${sequence*100+example_number}','${data.files[filenames[key]].raw_url}')"><b>${example_number}. ${temp.join(" ")}</b></a> `);
+        temp=data.files[filenames[key]].content
+        if(temp.includes("*/")){
+          // there is a block comment.  assume it is a descriptions
+          html.push(temp.split("*/")[0].split("/*")[1])  
+        }
+        html.push(`</p><div id="page${sequence*100+example_number}"></div>`)
+      }
+      tag(gist_id).innerHTML = html.join("");
+  
+      return
+  
+    });
+  
+  
+  }
+  static show_example(id, url) {
+    // place the code in an editable box for user to see and play with
+    // these examples should be made in script lab to have the right format
+    const elem = tag("page" + id);
+    //console.log(id + id);
+    if (elem.innerHTML === "") {
+      fetch(url)
+        .then((response) => response.text())
+        .then((data) => {
+         //console.log(data)
+          //const gist = jsyaml.load(data);
+          //console.log(gist)
+  
+          let div = document.createElement("div");
+          div.id="example" + id + "_html"
+          //div.innerHTML = gist.template.content;
+          div.style.marginBottom = "1rem";
+          elem.appendChild(div);
+  
+          const box = document.createElement("div");
+          box.id = "page" + id;
+          box.style.width = "100%";
+          box.style.height = "170px";
+          box.style.display = "inline-block";
+          box.style.position = "relative";
+  
+          div = document.createElement("div");
+          div.id = "editor" + id;
+          div.innerHTML = data.toHtmlEntities()
+  
+          box.appendChild(div);
+          elem.appendChild(box);
+  
+          
+          // setting up the editor in the example space
+          const scriptPromise = new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            document.body.appendChild(script);
+            script.onload = resolve;
+            script.onerror = reject;
+            script.async = true;
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
+          });
+  
+          scriptPromise.then(() => {
+            const editor = ace.edit("editor" + id);
+            editor.on("blur", function () {
+              this.update_script(id);
+            });
+            editor.setTheme("ace/theme/tomorrow");
+            //editor.session.$worker.send("changeOptions", [{ asi: true }]);
+            editor.setOptions({fontSize: "14pt"});
+            editor.getSession().setUseWorker(false);
+            editor.session.setMode("ace/mode/javascript");
+            editor.commands.addCommand({  // toggle word wrap
+              name: "wrap",
+              bindKey: {win: "Alt-z", mac: "Alt-z"},
+              exec: function(editor) {            
+                if(editor.getOptions().wrap==="off"){
+                  editor.setOptions({wrap: true})
+                  globalThis=true
+                }else{
+                  editor.setOptions({wrap: "off"})
+                }              
+              }
+            })
+          })
+  
+          elem.style.display = "block";
+          this.incorporate_code(this.this.show_example_html_script(id))
+  
+          this.incorporate_code(data)
+          setup() // setup must be defined in the example
+  
+  
+        })
+        .catch((error) => {
+         ;console.log(error);
+        })
+    } else {
+      if (elem.style.display === "block") {
+        elem.style.display = "none";
+      } else {
+        elem.style.display = "block";
+        this.incorporate_code(this.this.show_example_html_script(id))
+        this.incorporate_code(ace.edit("editor" + id).getValue())
+        setup() // setup must be defined in the example
+      }
+    }
+  }
+  static show_example_html_script(id){
+    return 'function show_html(html){tag("example'+id+'_html").innerHTML=html}\n'
+  }
+  static copy_to_clipboard(text) {
+    navigator.clipboard
+      .writeText(text)
+  }
+  static update_script(id) {
+    // read the script for an ace editor and write it to the DOM
+    // this is the one used by the examples page
+    //console.log("script" + id);
+    const editor=ace.edit("editor" + id)
+    const code = editor.getValue()
+    const parsed_code=this.parse_code(code)
+  
+    if(parsed_code.error){
+      alert(parsed_code.error, "Syntax Error")
+      editor.moveCursorTo(parsed_code.error.split("(")[1].split(":")[0]-1,parsed_code.error.split("(")[1].split(":")[1].split(")")[0])
+      editor.focus()
+      return false
+    }
+  
+  
+    this.incorporate_code(this.this.show_example_html_script(id))
+    this.incorporate_code(code)
+    
+    return true
+  }    
+  static parse_code(code){
+    try{
+      return acorn.parse(code, { "ecmaVersion": 8 }  );
+    }catch(e){
+      return {error:e.message}
+    }
+  }
+  static update_editor_script(panel_name) {
+    // read the script for an ace editor and write it to the DOM
+    // also saves the module to the custom properties
+    //console.log("at this.update_editor_script", panel_name)
+    // set the size of the editor in case there was a prior zoom
+  
+    
+  
+  
+    // get the code
+    const editor=ace.edit(panel_name + "-content")
+    const code = editor.getValue();
+  
+    // save the script to the workbook.  This is the most important thing
+    // we are doing at the moment.  Do it first
+    console.log("about to write module")
+    this.write_module_to_workbook(code, panel_name)
+  
+    // update the height of the editor in case it has gotten out of synch
+    tag(panel_name + "_editor-page").style.height = this.editor_height()
+  
+  
+    // show_html is defined differntly for modules than for examples
+    // we need to be sure it is defined correctly for modules, so we set it here
+    this.incorporate_code('function show_html(html){open_canvas("html", html)}')
+  
+  
+    //Check for syntax errors
+    const parsed_code=this.parse_code(code)
+  
+    if(parsed_code.error){
+      alert(parsed_code.error, "Syntax Error")
+      editor.moveCursorTo(parsed_code.error.split("(")[1].split(":")[0]-1,parsed_code.error.split("(")[1].split(":")[1].split(")")[0])
+      editor.focus()
+  
+      return false
+    }
+    
+    // load the user's code into the browser
+    this.incorporate_code(code)
+  
+    // put the function names in the function dropdown
+    this.load_function_names_select(parsed_code, panel_name)
+    
+    return true
+  }
+  static incorporate_code(code){
+    // It turns out that the script block does not need to persist in the HTML
+    // once the script block is loaded, the JS is parsed and not again referenced.
+    // So, we create a script block, append it to the document body, then remove.
+    const script = document.createElement("script");
+    script.innerHTML = code
+    document.body.appendChild(script);
+    document.body.lastChild.remove()
+  }
+  static write_module_to_workbook(code, panel_name){
+    let options = {fontSize:"14pt"}
+    const settings = {
+      cursorPosition:{row: 0, column: 0},
+      func:tag(panel_name + "_function-names").value
+    }
+  
+    try{
+      const editor = ace.edit(panel_name + "-content") 
+      settings.cursorPosition = editor.getCursorPosition()
+      options=editor.getOptions()
+    }catch(e){
+      //console.log("This is an expected error: ace editor not yet built",e)
+    }
+  
+    //console.log("writing options", JSON.stringify(options))
+    
+    const module_name = tag(panel_name).dataset.module_name
+    let xmlid = tag(panel_name).dataset.module_xmlid
+  
+    if (xmlid){  // workbook as already been saved and has and xmlid
+      //console.log("saving an existing book")
+      this.save_module_to_workbook(code, module_name, settings, xmlid, options)
+    }else{  // workbook not yet saved, function call will return an xmlid
+      this.save_module_to_workbook(code, module_name, settings, xmlid, options, tag(panel_name))
+    }
+  }
+  static save_module_to_workbook(code, module_name, mod_settings, xmlid, options, tag_to_hold_new_xml_id){
+    // options are currently being ignored, they are handled globally instead of at the module level
+    // save to workbook
+    Excel.run(async (excel)=>{
+      //console.log("saving code", panel_name) 
+      if(!mod_settings){
+        mod_settings = {
+          cursorPosition:{row: 0, column: 0},
+        }
+      }
+      //The next line has been disabled because we are not currently maintaining options at the module level
+      //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(settings))+"</settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
+  
+      // save module without options
+      const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(mod_settings))+"</settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
+      if(xmlid){
+        console.log("updating xml", xmlid, typeof xmlid)
+        const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
+        customXmlPart.setXml(module_xml)
+        excel.sync()
+        console.log("------- launched saving: existing -------")
+        
+      }else{
+        //console.log("creating xml")
+        const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
+        customXmlPart.load("id");
+        await excel.sync();
+  
+        //console.log("customXmlPart",customXmlPart.getXml())
+        // this is a newly created module and needs to have a custom xmlid part made for it
+        console.log("23443", settings, customXmlPart.id)
+        settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
+        this.write_settings_to_workbook()
+        console.log("------- launched saving: newly created -------")
+        console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
+        if("tag_to_hold_new_xml_id"){
+          tag_to_hold_new_xml_id.dataset.module_xmlid = xmlid
+        }
+      }
+  
+    })
+  
+  }
+  static load_function_names_select(code,panel_name){// reads the function names from the code and puts them in the function name select
+
+    // if a string is passed in, parse it.  otherwise, assume it is already parsed
+    if(typeof code === "string"){
+      var parsed_code = this.parse_code(code)
+    }else{
+      var parsed_code = code
+    }
+    
+    if(parsed_code.error){
+      return
+    }
+  
+    const selectElement=tag(panel_name + "_function-names")
+    const selected_script = selectElement.value
+    
+  
+    while(selectElement.options.length>0) {
+       selectElement.remove(0);
+    }
+  
     for(const element of parsed_code.body){
-      let call_stmt = null
+      let option_value = null
       if(element.type==="FunctionDeclaration"){
         if(element.id && element.id.name){
           // this is a named function
           if(element.params.length===0){
             //there are no params. it is callable
-            call_stmt=element.id.name + "()"
+            option_value=element.id.name + "()"
           } else if(element.params.length===1){
             // there is one param.  
             if(element.async){
               if(("excel ctx context").includes(element.params[0].name)){
                 // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
-                call_stmt = "Excel.run(" + element.id.name + ")"
+                option_value = element.id.name + "(excel)"
               }
             }
           }  
-          if(call_stmt){ // this is a function we can run directly
-            // check for comment
-            const function_text = window[ element.id.name]+''
-           //console.log(function_text)
-
-
-            if(function_text.includes("ace.listing:")){ // this is a function we can run directly and it as the comment
-              //console.log("found a comment", func)
-              const comment = function_text.split("ace.listing:")[1].split("*/")[0]
-              try{
-                const comment_json=JSON.parse(comment)
-                html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
-              }catch(e){
-                ;console.log("ace.listing was not valid JSON", comment)        
-              }
-            }//for function on code page
+          if(option_value){ // this is a function we can run directly
+            const option = document.createElement("option")
+            if(option_value===selected_script){option.selected='selected'}
+            option.text = element.id.name
+            option.value = option_value
+            selectElement.add(option)    
           } 
         }
       }
     } 
-  }
-
-  if(html.length===1){
-    //Did not find any properly configured functions
-    html.push("There are currently no active automations in this workbook.")
-  }else{
-    html.push("</ul>")  
-  }
-  open_canvas("panel_listings",html.join(""), show_close_button)
-}
-
-function show_panel(panel_name){
-
-  if(Jade.code_panels.includes(panel_name)){
-    // set the size in case it is off
-    if(tag(panel_name + "_function-names").length===0){
-      // there are no function to run
-      hide_element(panel_name + "_function-names")
-    }
-    tag(panel_name + "_editor-page").style.height = editor_height()
-    try{
-      ace.edit(panel_name + "-content").focus()
-    }catch(e){
-      ;console.log("could not access ace.  This is expected",e)
-    }
-  }
-  //################## 3 is  a problsm
-  if(Jade.panels.slice(0, 3).includes(panel_name) || Jade.code_panels.includes(panel_name)){
-    set_style()
-  }
-  
- //console.log("trying",panel_name)
-  for(const panel of Jade.panels){
-    if(panel===panel_name){
-     //console.log("showing", panel)
-      if(tag("selector_"+ panel_name)){
-        tag("selector_"+ panel_name).value=panel_name
-      }
-      tag(panel).style.display="block"  
-      Jade.panel_stack.push(panel)
+    if(selectElement.length===0){
+      this.hide_element(selectElement)
     }else{
-      //console.log(" hiding", panel)
-      tag(panel).style.display="none"  
+      this.show_element(selectElement)
     }
   }
-
-  if(Jade.code_panels.includes(panel_name)){
-    //focus the ace editor
-    try{
-      ace.edit(panel_name + "-content").focus()
-    }catch(e){
-      ;console.log("could not access ace.  This is expected",e)
+  static get_panel_selector(panel){
+    const panel_label=this.panel_name_to_panel_label(panel)
+    const sel = document.createElement("select")
+    //console.log("appending panel=====", panel)
+    if(!this.panel_labels.includes(panel_label)){
+      this.panel_labels.push(panel_label)
     }
-  }
-
-}
-
-
-function toggle_wrap(panel_name){
-  const editor = ace.edit(panel_name + "-content");
-  if(editor.getOptions().wrap==="off"){
-    editor.setOptions({wrap: true})
-    globalThis=true
-  }else{
-    editor.setOptions({wrap: "off"})
-  }
-}
-
-function add_code_editor(module_name, code, module_xmlid, mod_settings, options_in){
-  // settings are things gove is storing with the module
-  // options are the options from the ace editor
-  console.log("settings", settings)
-  let options = settings.user.ace_options
-
-console.log(1)
-  // not currently handling options at the editor level, so this block is diabled
-  // if(options_in){// default options for the editor
-  //   options=options_in
-  // }
-
-  //console.log(module_name, "options", options)
-  if(!mod_settings){
-    mod_settings={cursorPosition:{row: 0, column: 0}}
-  }
+    sel.className="panel-selector"
+    // put the options in this panel selector
+    this.update_panel_selector(sel)
   
-  //console.log("adding ace editor", module_name, module_xmlid)
-  const panel_name = "panel_" + module_name.toLowerCase().split(" ").join("_") + "_module"
-  Jade.code_panels.push(panel_name)
-  Jade.panel_labels.push(panel_name_to_panel_label(panel_name))
-  Jade.panels.push(panel_name)
-  build_panel(panel_name, false)
-  tag(panel_name).dataset.module_name = module_name
-  tag(panel_name).dataset.module_xmlid = module_xmlid
-  
-  console.log(2)
-
- //console.log("initializing examples", tag(panel_name))
-  
-  tag(panel_name).appendChild(get_panel_selector(panel_name))
-  const editor_container = document.createElement("div")
-  editor_container.className=panel_name+"-content"
-  
-
-  let div = document.createElement("div");
-  div.style.verticalAlign="middle"
-  div.style.verticalAlign.padding=".2rem"
-  div.innerHTML = '<button title="Save code to workbook" onclick="update_editor_script(\'' + panel_name + '\')">Save</button> <button  title="Save code to workbook and execute" onclick="code_runner(tag(\'' + panel_name + '_function-names' + '\').value,\'' + panel_name + '\')">Run</button> <select id="' + panel_name + '_function-names"></select>';
-  div.style.height="22px"
-  div.style.fontFamily="auto";
-  div.style.fontSize = "1rem";
-  div.style.padding=".2rem"
-  div.style.backgroundColor = "#eee";
-  div.id=panel_name + "_editor-bar"
-  editor_container.appendChild(div);
-  console.log(3)
-
-
-  //console.log("=======================================")
-  //console.log(div);
-  //console.log(div.clientHeight);
-
-  const box = document.createElement("div");
-  box.id = panel_name + "_editor-page";
-  box.style.width = "100%";
-  box.style.height = editor_height()
-  box.style.display = "inline-block";
-  box.style.position = "relative";
-  console.log(4)
-
- //console.log("document",document.body.clientHeight);
- //console.log("scr",tag("panel_code_editor").Height);
-
-
-  div = document.createElement("div");
-  div.id = panel_name + "-content";
-  div.dataset.edited=false
-  div.innerHTML = code.toHtmlEntities();
-
-  box.appendChild(div);
-  console.log(5)
-
-
-  editor_container.appendChild(box);
-
-  //        elem.innerHTML = '<pre id="pre' + id + '">' + gist.script.content.split("<").join("&lt;") + '</pre>'
-
-  const scriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    document.body.appendChild(script);
-    script.onload = resolve;
-    script.onerror = reject;
-    script.async = true;
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
-  });
-  console.log(6)
-
-  scriptPromise.then(() => {
-    const editor = ace.edit(panel_name + "-content");
+    // update all others panel selectirs
+    for(const selector of document.getElementsByClassName("panel-selector")){
+      this.update_panel_selector(selector)
+    }
     
-    editor.on("blur", function () {
-      window.event.target.parentElement.dataset.edited=true
-    });
-    //editor.setTheme("ace/theme/solarized_light");
-    // if(!isNaN(options.fontSize)){
-    //   options.fontSize += "pt"
-    // }
-    editor.setOptions(options);
-    editor.session.setMode("ace/mode/javascript");
-
-    //console.log("settings", settings)
-    editor.moveCursorTo(mod_settings.cursorPosition.row, mod_settings.cursorPosition.column)
-
-    editor.commands.addCommand({  // toggle word wrap
-      name: "wrap",
-      bindKey: {win: "Alt-z", mac: "Alt-z"},
-      exec: function(editor) {
-        for(const panel of Jade.code_panels){
-          if(tag(panel).style.display==="block"){
-            // we found the one that is visible
-            toggle_wrap(panel)
-            break//exit the loop
-          }
-        }
-        
-      }
-    })
-
-    editor.commands.addCommand({  // could do ctrl+r but want to be parallel with save
-      name: "run",
-      bindKey: {win: "Ctrl-enter", mac: "Command-enter"},
-      exec: function(editor) {
-        for(const panel of Jade.code_panels){
-          if(tag(panel).style.display==="block"){
-            // we found the one that is visible
-            code_runner(tag(panel + '_function-names').value, panel)
-            break//exit the loop
-          }
-        }
-      }
-    })
-
-    editor.commands.addCommand({  // could do ctrl+r but want to be parallel with save
-      name: "run_shift",
-      bindKey: {win: "alt-enter", mac: "alt-enter"},
-      exec: function(editor) {
-        for(const panel of Jade.code_panels){
-          if(tag(panel).style.display==="block"){
-            // we found the one that is visible
-            code_runner(tag(panel + '_function-names').value, panel)
-            break//exit the loop
-          }
-        }
-      }
-    })
-
-  });
-
-  
-
-  editor_container.style.display = "block";
-
-  const parsed_code=parse_code(code)
-  if(!parsed_code.error){
-    // only incorporate the code if it is free of syntax errors
-    incorporate_code(code)  
+    sel.value=panel
+    sel.style.height="40px"
+    sel.id="selector_"+panel
+    sel.onchange = this.select_page
+    return sel
   }
-
-  
-  
-  tag(panel_name).appendChild(editor_container)
-
-  load_function_names_select(code, panel_name)
-  if(mod_settings.func){
-    tag(panel_name + "_function-names").value=mod_settings.func
-
+  static update_panel_selector(sel){
+    // put the proper choices in a panel selector
+    while(sel.length>0){
+       sel.remove(0)
+    }
+    for (let i=0; i<this.panel_labels.length; i++) {
+      var option = document.createElement("option");
+      option.value = this.panel_label_to_panel_name(this.panel_labels[i]) 
+     //console.log("-->", option.value)
+      option.text = this.panel_labels[i];
+      option.className="panel-selector-option"
+      sel.appendChild(option);
+    }
   }
-
-  // AutoExecutable function
- //console.log("about to autoexec")
-  try{
-   //console.log("in try")
-    auto_exec()
-  }catch(e){
-   ;console.log("catch",e)
+  static panel_label_to_panel_name(panel_label){
+    return "panel_" + panel_label.toLocaleLowerCase().split(" ").join("_");
+  }
+  static panel_name_to_panel_label(panel_name){
+    let panel_label = panel_name.replace("panel_","")
+    panel_label=panel_label.split("_").join(" ") 
+    return panel_label.toTitleCase()
+  }
+  static select_page(){
+    console.log("panel name",window.event.target.value)
+    Jade.show_panel(window.event.target.value)
+  }
+  static show_element(tag_id){
+    // removes the hidden class from a tag's css
+    if (typeof tag_id==="string"){
+      var the_tag=tag(tag_id)
+    }else{  
+      the_tag=tag_id
+    }
+    the_tag.className=the_tag.className.replaceAll("hidden","")
   }  
-}
-
-function code_runner(script_name,panel_name){
-  //console.log(script_name,panel_name)
-  if (tag(panel_name + "-content").dataset.edited==="true"){
-    if(!update_editor_script(panel_name)){
-      // update_editor_script returns false if there is a 
-      // syntax error.  Don't run the old code
-      return
+  static hide_element(tag_id){
+    // adds the hidden class from a tag's css
+    //console.log("tag_id",tag_id)
+    //console.log("tag(tag_id)",tag(tag_id))
+    //console.log("tag(tag_id).className",tag(tag_id).className)
+    if (typeof tag_id==="string"){
+      var the_tag=tag(tag_id)
+    }else{  
+      the_tag=tag_id
     }
-  }
-  
-  if(script_name.includes("(excel)")){
-    setTimeout("Excel.run(" + script_name.split("(")[0] + ")", 0) //run the function
-  }else{
-    setTimeout(script_name, 0) //run the function
-  }
-}
-
-function init_output(){
-  const panel_name="panel_output"
-  build_panel(panel_name, false)
-  const panel=tag(panel_name)
- //console.log("initializing examples")
-  panel.appendChild(get_panel_selector(panel_name))
-  print('This panel shows the results of your calls to the "print" function.  Use "print(data)" to append text to the most recently printed block.', "About the Output Panel")
-  print('\nUse "print(data, heading)" to start a new block.')
-  
-}
-
-function rebuild_examples(gist_id){
-  tag("panel_examples").innerHTML=""
-  fill_examples(gist_id)
-}
-
-
-
-function init_examples(){
-  build_panel("panel_examples", false)
-  fill_examples()
-}
-
-
-function fill_examples(gist_ids){
-  //gist_ids is a comma delimited list of gist ids that hold examples
-  
-  if(!gist_ids){gist_ids=settings.workbook.examples_gist_id}
-  const panel_name="panel_examples"
-  const panel=tag(panel_name)
- //console.log("initializing examples")
-  panel.appendChild(get_panel_selector(panel_name))
-  const div = document.createElement("div")
-  div.className="content"
-  div.id="e_content"
-  panel.appendChild(div)
-  console.log("gist_ids",gist_ids, settings)
-
-  const gist_list=[]
-  console.log("gist_ids.split(",")",gist_ids.split(","))
-  for(const gist of gist_ids.split(",")){
-    console.log("gisting",gist)
-    gist_list.push(gist.trim())
-  }
-  console.log("gist_list",gist_list)
-  const html=[]
-  for(const gist of gist_list){
-    html.push(`<div id="${gist}"></div>`)
-  }
-  tag("e_content").innerHTML = html.join("");
-
-  for(let i=0;i<gist_list.length;i++){
-    console.log("gist_list[i]",gist_list[i])
-    get_example_html(gist_list[i],i+1)// get the gist and integrate the examples
-  }
-}
-
-
-function get_example_html(gist_id, sequence){
-
-  const url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
-  console.log("building examples",url)
-  
-  console.log("about to fetch",url)
-
-fetch(url)
-.then((response) => response.text())
-.then((json_text) => {
-//  console.log("json_text",json_text)
-  const data=JSON.parse(json_text)
-
-  // now we have the data from the api call.  need to organize it--especially for order
-  // make a list of objects with integers as keys so the order will be numerical
-  const filenames={}
-    for(const filename of Object.keys(data.files)){
-    filenames[parseFloat(filename.split("_").shift())] = filename
-  }
-  console.log("filenames",filenames)
-  let temp = data.description.split(":")
-  const html=[`<h2>${temp.shift()}</h2>`]
-  html.push(temp.join(":").trim())
-  // iterate for each file in the gist
-  let example_number=0
-  for(const key of Object.keys(filenames)){
-    example_number++
-    console.log(key, filenames[key])
-    temp=filenames[key].split(".")
-    temp.pop()//remove the extension
-    temp=temp.join(".").split("_")
-    temp.shift()// remove the sort sequence number
-    html.push(`<p><a class="link" title="Show Code" onclick="show_example('${sequence*100+example_number}','${data.files[filenames[key]].raw_url}')"><b>${example_number}. ${temp.join(" ")}</b></a> `);
-    temp=data.files[filenames[key]].content
-    if(temp.includes("*/")){
-      // there is a block comment.  assume it is a descriptions
-      html.push(temp.split("*/")[0].split("/*")[1])  
-    }
-    html.push(`</p><div id="page${sequence*100+example_number}"></div>`)
-  }
-  tag(gist_id).innerHTML = html.join("");
-
-  return
-
-});
-
-
-}
-
-
-
-
-
-function show_example(id, url) {
-  // place the code in an editable box for user to see and play with
-  // these examples should be made in script lab to have the right format
-  const elem = tag("page" + id);
-  //console.log(id + id);
-  if (elem.innerHTML === "") {
-    fetch(adjust_url_for_gist(url))
-      .then((response) => response.text())
-      .then((data) => {
-       //console.log(data)
-        //const gist = jsyaml.load(data);
-        //console.log(gist)
-
-        let div = document.createElement("div");
-        div.id="example" + id + "_html"
-        //div.innerHTML = gist.template.content;
-        div.style.marginBottom = "1rem";
-        elem.appendChild(div);
-
-        const box = document.createElement("div");
-        box.id = "page" + id;
-        box.style.width = "100%";
-        box.style.height = "170px";
-        box.style.display = "inline-block";
-        box.style.position = "relative";
-
-        div = document.createElement("div");
-        div.id = "editor" + id;
-        div.innerHTML = data.toHtmlEntities()
-
-        box.appendChild(div);
-        elem.appendChild(box);
-
-        
-        // setting up the editor in the example space
-        const scriptPromise = new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          document.body.appendChild(script);
-          script.onload = resolve;
-          script.onerror = reject;
-          script.async = true;
-          script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
-        });
-
-        scriptPromise.then(() => {
-          const editor = ace.edit("editor" + id);
-          editor.on("blur", function () {
-            update_script(id);
-          });
-          editor.setTheme("ace/theme/tomorrow");
-          //editor.session.$worker.send("changeOptions", [{ asi: true }]);
-          editor.setOptions({fontSize: "14pt"});
-          editor.getSession().setUseWorker(false);
-          editor.session.setMode("ace/mode/javascript");
-          editor.commands.addCommand({  // toggle word wrap
-            name: "wrap",
-            bindKey: {win: "Alt-z", mac: "Alt-z"},
-            exec: function(editor) {            
-              if(editor.getOptions().wrap==="off"){
-                editor.setOptions({wrap: true})
-                globalThis=true
-              }else{
-                editor.setOptions({wrap: "off"})
-              }              
-            }
-          })
-        })
-
-        elem.style.display = "block";
-        incorporate_code(show_example_html_script(id))
-
-        incorporate_code(data)
-        setup() // setup must be defined in the example
-
-
-      })
-      .catch((error) => {
-       ;console.log(error);
-      })
-  } else {
-    if (elem.style.display === "block") {
-      elem.style.display = "none";
-    } else {
-      elem.style.display = "block";
-      incorporate_code(show_example_html_script(id))
-      incorporate_code(ace.edit("editor" + id).getValue())
-      setup() // setup must be defined in the example
-    }
-  }
-}
-
-function show_example_html_script(id){
-  return 'function show_html(html){tag("example'+id+'_html").innerHTML=html}\n'
-}
-
-function copy(text, out) {
-  navigator.clipboard
-    .writeText(text)
-    // .then(() => {
-    //   if (out) {
-    //     status('choose "Import" from the Script Lab code editor main menu', out);
-    //   }
-    // })
-    // .catch(() => {
-    //   //console.log("Failed to copy text.");
-    // });
-}
-
-function update_script(id) {
-  // read the script for an ace editor and write it to the DOM
-  // this is the one used by the examples page
-  //console.log("script" + id);
-  const editor=ace.edit("editor" + id)
-  const code = editor.getValue()
-  const parsed_code=parse_code(code)
-
-  if(parsed_code.error){
-    alert(parsed_code.error, "Syntax Error")
-    editor.moveCursorTo(parsed_code.error.split("(")[1].split(":")[0]-1,parsed_code.error.split("(")[1].split(":")[1].split(")")[0])
-    editor.focus()
-    return false
-  }
-
-
-  incorporate_code(show_example_html_script(id))
-  incorporate_code(code)
-  
-  return true
-}
-
-function parse_code(code){
-  try{
-    return acorn.parse(code, { "ecmaVersion": 8 }  );
-  }catch(e){
-    return {error:e.message}
-  }
-}
-
-function update_editor_script(panel_name) {
-  // read the script for an ace editor and write it to the DOM
-  // also saves the module to the custom properties
-  //console.log("at update_editor_script", panel_name)
-  // set the size of the editor in case there was a prior zoom
-
-  
-
-
-  // get the code
-  const editor=ace.edit(panel_name + "-content")
-  const code = editor.getValue();
-
-  // save the script to the workbook.  This is the most important thing
-  // we are doing at the moment.  Do it first
-  console.log("about to write module")
-  write_module_to_workbook(code, panel_name)
-
-  // update the height of the editor in case it has gotten out of synch
-  tag(panel_name + "_editor-page").style.height = editor_height()
-
-
-  // show_html is defined differntly for modules than for examples
-  // we need to be sure it is defined correctly for modules, so we set it here
-  incorporate_code('function show_html(html){open_canvas("html", html)}')
-
-
-  //Check for syntax errors
-  const parsed_code=parse_code(code)
-
-  if(parsed_code.error){
-    alert(parsed_code.error, "Syntax Error")
-    editor.moveCursorTo(parsed_code.error.split("(")[1].split(":")[0]-1,parsed_code.error.split("(")[1].split(":")[1].split(")")[0])
-    editor.focus()
-
-    return false
-  }
-  
-  // load the user's code into the browser
-  incorporate_code(code)
-
-  // put the function names in the function dropdown
-  load_function_names_select(parsed_code, panel_name)
-  
-  return true
-}
-
-function incorporate_code(code){
-  // It turns out that the script block does not need to persist in the HTML
-  // once the script block is loaded, the JS is parsed and not again referenced.
-  // So, we create a script block, append it to the document body, then remove.
-  const script = document.createElement("script");
-  script.innerHTML = code
-  document.body.appendChild(script);
-  document.body.lastChild.remove()
-}
-
-function write_module_to_workbook(code, panel_name){
-  let options = {fontSize:"14pt"}
-  const settings = {
-    cursorPosition:{row: 0, column: 0},
-    func:tag(panel_name + "_function-names").value
-  }
-
-  try{
-    const editor = ace.edit(panel_name + "-content") 
-    settings.cursorPosition = editor.getCursorPosition()
-    options=editor.getOptions()
-  }catch(e){
-    //console.log("This is an expected error: ace editor not yet built",e)
-  }
-
-  //console.log("writing options", JSON.stringify(options))
-  
-  const module_name = tag(panel_name).dataset.module_name
-  let xmlid = tag(panel_name).dataset.module_xmlid
-
-  if (xmlid){  // workbook as already been saved and has and xmlid
-    //console.log("saving an existing book")
-    save_module_to_workbook(code, module_name, settings, xmlid, options)
-  }else{  // workbook not yet saved, function call will return an xmlid
-    
-    xmlid=save_module_to_workbook(code, module_name, settings, xmlid, options, tag(panel_name))
-    console.log("Freshly caught xmlid", xmlid)
-    
-  }
-}
-
-function save_module_to_workbook(code, module_name, mod_settings, xmlid, options, tag_to_hold_new_xml_id){
-  // options are currently being ignored, they are handled globally instead of at the module level
-  // save to workbook
-  Excel.run(async (excel)=>{
-    //console.log("saving code", panel_name) 
-    if(!mod_settings){
-      mod_settings = {
-        cursorPosition:{row: 0, column: 0},
+    if(the_tag){
+      if(the_tag.className){
+        if(!the_tag.className.includes("hidden")){
+          the_tag.className=(the_tag.className + " hidden").trim()
+        }
+      }else{
+        the_tag.className="hidden"
       }
     }
-    //The next line has been disabled because we are not currently maintaining options at the module level
-    //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(settings))+"</settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
-
-    // save module without options
-    const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(mod_settings))+"</settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
-    if(xmlid){
-      console.log("updating xml", xmlid, typeof xmlid)
-      const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
-      customXmlPart.setXml(module_xml)
-      excel.sync()
-      console.log("------- launched saving: existing -------")
-      
+  }
+  static toggle_element(tag_id){
+    // adds the hidden class from a tag's css
+    
+    if (typeof tag_id==="string"){
+      var the_tag=tag(tag_id)
+    }else{  
+      the_tag=tag_id
+    }
+  
+    if(the_tag.className.includes("hidden")){
+      this.show_element(the_tag)
     }else{
-      //console.log("creating xml")
-      const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
-      customXmlPart.load("id");
-      excel.sync();
-
-      //console.log("customXmlPart",customXmlPart.getXml())
-      // this is a newly created module and needs to have a custom xmlid part made for it
-      console.log("23443", settings, customXmlPart.id)
-      settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
-      Jade.write_settings_to_workbook()
-      console.log("------- launched saving: newly created -------")
-      console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
-      if("tag_to_hold_new_xml_id"){
-        tag_to_hold_new_xml_id.dataset.module_xmlid = xmlid
-      }
+      this.hide_element(the_tag)
     }
-
-  })
-
-}
-
-
-
-function load_function_names_select(code,panel_name){// reads the function names from the code and puts them in the function name select
-
-  // if a string is passed in, parse it.  otherwise, assume it is already parsed
-  if(typeof code === "string"){
-    var parsed_code = parse_code(code)
-  }else{
-    var parsed_code = code
+  }
+  static editor_height(){
+    return (window.innerHeight-73)+"px"
+  }
+  static default_code(panel_name){
+    let code = `async function write_timestamp(excel){
+      /*ace.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
+    excel.workbook.getSelectedRange().values = new Date();
+    await excel.sync();
   }
   
-  if(parsed_code.error){
-    return
-  }
-
-  const selectElement=tag(panel_name + "_function-names")
-  const selected_script = selectElement.value
+  function auto_exec(){
+    // This function is called when the addin opens.
+    // un-comment a line below to take action on open.
   
-
-  while(selectElement.options.length>0) {
-     selectElement.remove(0);
-  }
-
-  for(const element of parsed_code.body){
-    let option_value = null
-    if(element.type==="FunctionDeclaration"){
-      if(element.id && element.id.name){
-        // this is a named function
-        if(element.params.length===0){
-          //there are no params. it is callable
-          option_value=element.id.name + "()"
-        } else if(element.params.length===1){
-          // there is one param.  
-          if(element.async){
-            if(("excel ctx context").includes(element.params[0].name)){
-              // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
-              option_value = element.id.name + "(excel)"
-            }
-          }
-        }  
-        if(option_value){ // this is a function we can run directly
-          const option = document.createElement("option")
-          if(option_value===selected_script){option.selected='selected'}
-          option.text = element.id.name
-          option.value = option_value
-          selectElement.add(option)    
-        } 
-      }
+    // open_automations() // displays a list of functions for a user
+  `
+    if(panel_name){
+      code += `  // Jade.show_panel('${panel_name}')      // shows this code editor
+  }`
+    }else{
+      code += `  // Jade.open_editor()      // shows the code editor
+  }`
     }
-  } 
-  if(selectElement.length===0){
-    hide_element(selectElement)
-  }else{
-    show_element(selectElement)
+    return code
   }
-}
-
-
-function get_panel_selector(panel){
-  const panel_label=panel_name_to_panel_label(panel)
-  const sel = document.createElement("select")
-  //console.log("appending panel=====", panel)
-  if(!Jade.panel_labels.includes(panel_label)){
-    Jade.panel_labels.push(panel_label)
-  }
-  sel.className="panel-selector"
-  // put the options in this panel selector
-  update_panel_selector(sel)
-
-  // update all others panel selectirs
-  for(const selector of document.getElementsByClassName("panel-selector")){
-    update_panel_selector(selector)
-  }
+  static show_import_module(){
+    console.log("at show import", settings.workbook.module_to_import)
+    if(settings.workbook.module_to_import){
+      console.log("in if")
+      tag("gist-url").value=settings.workbook.module_to_import
+    }
+    this.toggle_element('import-module')
+    tag('gist-url').focus()
   
-  sel.value=panel
-  sel.style.height="40px"
-  sel.id="selector_"+panel
-  sel.onchange = select_page
-  return sel
-}
-
-function update_panel_selector(sel){
-  // put the proper choices in a panel selector
-  while(sel.length>0){
-     sel.remove(0)
   }
-  for (let i=0; i<Jade.panel_labels.length; i++) {
-    var option = document.createElement("option");
-    option.value = panel_label_to_panel_name(Jade.panel_labels[i]) 
-   //console.log("-->", option.value)
-    option.text = Jade.panel_labels[i];
-    option.className="panel-selector-option"
-    sel.appendChild(option);
-  }
-}
+}// end of Jade class
 
 
-
-function panel_label_to_panel_name(panel_label){
-  return "panel_" + panel_label.toLocaleLowerCase().split(" ").join("_");
-}
-
-function panel_name_to_panel_label(panel_name){
-  let panel_label = panel_name.replace("panel_","")
-  panel_label=panel_label.split("_").join(" ") 
-  return titleCase(panel_label)
-}
-
-function titleCase(str) {
-  str = str.toLowerCase().split(' ');
-  for (var i = 0; i < str.length; i++) {
-    str[i] = str[i].charAt(0).toUpperCase() + str[i].slice(1); 
-  }
-  return str.join(' ');
-}
-
-function select_page(){
-  show_panel(window.event.target.value)
-}
-
-
-
-/**
- * Convert a string to HTML entities
- */
- String.prototype.toHtmlEntities = function() {
+/*** Convert a string to HTML entities */
+String.prototype.toHtmlEntities = function() {
   return this.replace(/./gm, function(s) {
       // return "&#" + s.charCodeAt(0) + ";";
       return (s.match(/[a-z0-9\s]+/i)) ? s : "&#" + s.charCodeAt(0) + ";";
   });
 };
 
-/**
-* Create string from HTML entities
-*/
-String.fromHtmlEntities = function(string) {
+/*** Create string from HTML entities--not used*/
+String.prototype.fromHtmlEntities = function(string) {
   return (string+"").replace(/&#\d+;/gm,function(s) {
       return String.fromCharCode(s.match(/\d+/gm)[0]);
   })
 };
 
-
-
-
-
-
-
-
-
-function show_element(tag_id){
-  // removes the hidden class from a tag's css
-  if (typeof tag_id==="string"){
-    var the_tag=tag(tag_id)
-  }else{  
-    the_tag=tag_id
+String.prototype.toTitleCase=function() {
+  str = this.toLowerCase().split(' ');
+  for (var i = 0; i < str.length; i++) {
+    str[i] = str[i].charAt(0).toUpperCase() + str[i].slice(1); 
   }
-  the_tag.className=the_tag.className.replaceAll("hidden","")
+  return str.join(' ');
 }
 
-function hide_element(tag_id){
-  // adds the hidden class from a tag's css
-  //console.log("tag_id",tag_id)
-  //console.log("tag(tag_id)",tag(tag_id))
-  //console.log("tag(tag_id).className",tag(tag_id).className)
-  if (typeof tag_id==="string"){
-    var the_tag=tag(tag_id)
-  }else{  
-    the_tag=tag_id
-  }
-  if(the_tag){
-    if(the_tag.className){
-      if(!the_tag.className.includes("hidden")){
-        the_tag.className=(the_tag.className + " hidden").trim()
-      }
-    }else{
-      the_tag.className="hidden"
-    }
-  }
+function tag(id){
+  // a short way to get an element by ID
+  return document.getElementById(id)
 }
-
-function toggle_element(tag_id){
-  // adds the hidden class from a tag's css
-  
-  if (typeof tag_id==="string"){
-    var the_tag=tag(tag_id)
-  }else{  
-    the_tag=tag_id
-  }
-
-  if(the_tag.className.includes("hidden")){
-    show_element(the_tag)
-  }else{
-    hide_element(the_tag)
-  }
-}
-
-function editor_height(){
-  return (window.innerHeight-73)+"px"
-}
-
-function default_code(panel_name){
-  let code = `async function write_timestamp(excel){
-    /*ace.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
-  excel.workbook.getSelectedRange().values = new Date();
-  await excel.sync();
-}
-
-function auto_exec(){
-  // This function is called when the addin opens.
-  // un-comment a line below to take action on open.
-
-  // open_automations() // displays a list of functions for a user
-`
-  if(panel_name){
-    code += `  // show_panel('${panel_name}')      // shows this code editor
-}`
-  }else{
-    code += `  // open_editor()      // shows the code editor
-}`
-  }
-  return code
-}
-
-
-function show_import_module(){
-  console.log("at show import", settings.workbook.module_to_import)
-  if(settings.workbook.module_to_import){
-    console.log("in if")
-    tag("gist-url").value=settings.workbook.module_to_import
-  }
-  toggle_element('import-module')
-  tag('gist-url').focus()
+function alert(data, heading){
+  if(tag("ace-alert")){tag("ace-alert").remove()}
+  if(!heading){heading="System Message"}
+  const div = document.createElement("div")
+  div.className="ace-alert"
+  div.id='ace-alert'
+  const header = document.createElement("div")
+  header.className="ace-alert-header"  
+  header.innerHTML = heading + '<div class="ace-alert-close"><i class="fas fa-times" style="color:white;margin-right:.3rem;cursor:pointer" onclick="this.parentNode.parentNode.parentNode.remove()"></div>'
+  const body = document.createElement("div")
+  body.className="ace-alert-body"  
+  body.innerHTML = data
+  div.appendChild(header)
+  div.appendChild(body)
+  document.body.appendChild(div)
 
 }
