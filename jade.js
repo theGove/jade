@@ -20,22 +20,22 @@ class Jade{
   // that become modules in jsvba
 
     console.log("gisting", gist_id)
-  try{
+    try{
+        
+      const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
+      const data = await response.json()
+      for(const file of Object.values(data.files)){
+          console.log("===================================")
+          console.log(file.content)
+          console.log("===================================")
+          this.incorporate_code(file.content)
+      }
+      auto_exec()
+      this.incorporate_code("auto_exec=null")
       
-    const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
-    const data = await response.json()
-    for(const file of Object.values(data.files)){
-        console.log("===================================")
-        console.log(file.content)
-        console.log("===================================")
-        this.incorporate_code(file.content)
+    }catch(e){
+      console.log("Error fetching gist", e)
     }
-    auto_exec()
-    this.incorporate_code("auto_exec=null")
-    
-  }catch(e){
-    console.log("Error fetching gist", e)
-  }
   }
   static async import_code_module(url_or_gist_id){
       settings.workbook.module_to_import=url_or_gist_id
@@ -159,11 +159,11 @@ class Jade{
   static reset(){
       this.show_panel("panel_home")
   }
-  static show_html(html){
-      //A simple function that is mapped differntly for examples than for modules
-      //this is the module mapping
-      open_canvas("html", html)
-  }
+  // static show_html(html){
+  //     //A simple function that is mapped differntly for examples than for modules
+  //     //this is the module mapping
+  //     this.open_canvas("html", html)
+  // }
   static open_canvas(panel_name, html, show_panel_close_button, style_name){
       if(style_name){
           this.set_style(style_name)
@@ -380,7 +380,7 @@ class Jade{
   window.addEventListener('resize', function(event) {
     //console.log("hi")
     for(const panel_name of Jade.code_panels){
-      tag(panel_name + "_editor-page").style.height = this.editor_height()
+      tag(panel_name + "_editor-page").style.height = Jade.editor_height()
     }
   }, true);
   this.init_examples()
@@ -972,8 +972,8 @@ class Jade{
     const panel=tag(panel_name)
    //console.log("initializing examples")
     panel.appendChild(this.get_panel_selector(panel_name))
-    this.print('This panel shows the results of your calls to the "print" function.  Use "print(data)" to append text to the most recently printed block.', "About the Output Panel")
-    this.print('\nUse "print(data, heading)" to start a new block.')
+    this.print('This panel shows the results of your calls to the "print" function.  Use "Jade.print(data)" to append text to the most recently printed block.', "About the Output Panel")
+    this.print('\nUse "Jade.print(data, heading)" to start a new block.')
     
   }
   static rebuild_examples(gist_id){
@@ -1023,7 +1023,6 @@ class Jade{
     console.log("building examples",url)
     
     console.log("about to fetch",url)
-  
     fetch(url)
     .then((response) => response.text())
     .then((json_text) => {
@@ -1049,8 +1048,9 @@ class Jade{
         temp.pop()//remove the extension
         temp=temp.join(".").split("_")
         temp.shift()// remove the sort sequence number
-        html.push(`<p><a class="link" title="Show Code" onclick="Jade.show_example('${sequence*100+example_number}','${data.files[filenames[key]].raw_url}')"><b>${example_number}. ${temp.join(" ")}</b></a> `);
+        html.push(`<p><a class="link" title="Show Code" onclick="Jade.show_example('${sequence*100+example_number}','${data.files[filenames[key]].raw_url}',${data.files[filenames[key]].content.split(/\r\n|\r|\n/).length})"><b>${example_number}. ${temp.join(" ")}:</b> </a>`);
         temp=data.files[filenames[key]].content
+
         if(temp.includes("*/")){
           // there is a block comment.  assume it is a descriptions
           html.push(temp.split("*/")[0].split("/*")[1])  
@@ -1065,31 +1065,40 @@ class Jade{
   
   
   }
-  static show_example(id, url) {
+  static show_example(id, url, lines) {
     // place the code in an editable box for user to see and play with
     // these examples should be made in script lab to have the right format
+
     const elem = tag("page" + id);
     //console.log(id + id);
     if (elem.innerHTML === "") {
+      console.log("lines", lines)
+      elem.innerHTML='<img id="loading-image" width="50" src="assets/loading.gif" />'
+  
       fetch(url)
         .then((response) => response.text())
         .then((data) => {
          //console.log(data)
           //const gist = jsyaml.load(data);
           //console.log(gist)
-  
+          tag("loading-image").remove()
           let div = document.createElement("div");
           div.id="example" + id + "_html"
           //div.innerHTML = gist.template.content;
           div.style.marginBottom = "1rem";
           elem.appendChild(div);
-  
+          let box_height = (lines*22+17)// the size neede to show the whole example
+          if(box_height>window.innerHeight){
+            box_height=window.innerHeight-60
+          }
+          
           const box = document.createElement("div");
-          box.id = "page" + id;
+          box.id = "page_" + id;
           box.style.width = "100%";
-          box.style.height = "170px";
+          box.style.height = box_height+"px";
           box.style.display = "inline-block";
           box.style.position = "relative";
+
   
           div = document.createElement("div");
           div.id = "editor" + id;
@@ -1097,7 +1106,7 @@ class Jade{
   
           box.appendChild(div);
           elem.appendChild(box);
-  
+          
           
           // setting up the editor in the example space
           const scriptPromise = new Promise((resolve, reject) => {
@@ -1134,12 +1143,13 @@ class Jade{
           })
   
           elem.style.display = "block";
-          this.incorporate_code(this.this.show_example_html_script(id))
+          this.incorporate_code(this.show_example_html_script(id))
   
           this.incorporate_code(data)
           setup() // setup must be defined in the example
-  
-  
+          if(!this.is_visible(tag("page_" + id ))){
+            tag("page_" + id ).scrollIntoView(false)
+          }
         })
         .catch((error) => {
          ;console.log(error);
@@ -1149,11 +1159,15 @@ class Jade{
         elem.style.display = "none";
       } else {
         elem.style.display = "block";
-        this.incorporate_code(this.this.show_example_html_script(id))
+        this.incorporate_code(this.show_example_html_script(id))
         this.incorporate_code(ace.edit("editor" + id).getValue())
         setup() // setup must be defined in the example
-      }
+        if(!this.is_visible(tag("page_" + id ))){
+          tag("page_" + id ).scrollIntoView(false)
+        }
     }
+    }
+    
   }
   static show_example_html_script(id){
     return 'function show_html(html){tag("example'+id+'_html").innerHTML=html}\n'
@@ -1178,7 +1192,7 @@ class Jade{
     }
   
   
-    this.incorporate_code(this.this.show_example_html_script(id))
+    this.incorporate_code(this.show_example_html_script(id))
     this.incorporate_code(code)
     
     return true
@@ -1496,6 +1510,16 @@ class Jade{
     tag('gist-url').focus()
   
   }
+  static is_visible(el) {
+    const rect = el.getBoundingClientRect();
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+
+    );
+}
 }// end of Jade class
 
 
