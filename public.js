@@ -43,7 +43,7 @@ async function import_code_module(url_or_gist_id){
     console.log("at import code mod", settings.workbook)
 
     hide_element("import-module")
-    save_settings()
+    Jade.save_settings()
     if(!url_or_gist_id){
         return
     }
@@ -137,7 +137,7 @@ async function import_code_module(url_or_gist_id){
 
 
 function set_css(user_css){
-    globals.css_suffix=user_css
+    Jade.css_suffix=user_css
 }
 
 function add_library(url){
@@ -165,12 +165,12 @@ function tag(id){
 }
 
 function close_canvas(){
-    globals.panel_stack.pop()
-    show_panel(globals.panel_stack.pop())
+    Jade.panel_stack.pop()
+    show_panel(Jade.panel_stack.pop())
 }
 
 function open_editor(){
-    show_panel(globals.code_panels[0])
+    show_panel(Jade.code_panels[0])
 }
 
 function open_examples(){
@@ -205,8 +205,8 @@ function open_canvas(panel_name, html, show_panel_close_button, style_name){
         build_panel(panel_name)
     }
 
-    if(!globals.panels.includes(panel_name)){
-        globals.panels.push(panel_name)
+    if(!Jade.panels.includes(panel_name)){
+        Jade.panels.push(panel_name)
     }
 
     show_panel(panel_name)

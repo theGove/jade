@@ -1,15 +1,18 @@
 const settings={}
-const globals={
-  css_suffix:"",
-  panels:['panel_home','panel_examples'],
-  panel_labels:["Home", "Examples", "Output"],
-  code_panels:[],
-  panel_stack:['panel_home']
-}
-function start_me_up(){
+
+class Jade{
+  // Class Properties
+  static css_suffix=""
+  static panels=['panel_home','panel_examples']
+  static panel_labels=["Home", "Examples", "Output"]
+  static code_panels=[]
+  static panel_stack=['panel_home']
+
+  // Class Methods
+  static start_me_up(){
   //console.log("at start_me_up")
   settings.workbook.styles.system=tag("head_style").innerText
-  globals.panels.push("panel_home")
+  this.panels.push("panel_home")
   
   //load code from one gist if specified.  
   console.log("about ot load")
@@ -39,7 +42,7 @@ function start_me_up(){
   // fit the editor to the windows on resize
   window.addEventListener('resize', function(event) {
     //console.log("hi")
-    for(const panel_name of globals.code_panels){
+    for(const panel_name of Jade.code_panels){
       tag(panel_name + "_editor-page").style.height = editor_height()
     }
   }, true);
@@ -73,77 +76,76 @@ function start_me_up(){
 
 
   console.log("end of  start_me_up, settings", settings)
-}
-
-function configure_settings(){
-  toggle_element('settings');
-  if(!tag('settings').className.includes("hidden")){
-    //tag('ace-theme').focus();
-    tag('settings-button').scrollIntoView(true);
-    //console.log("fontSize",settings.user.ace_options.fontSize)  
-    tag("ace-font-size").value = settings.user.ace_options.fontSize.replace("pt","")
-    if(settings.user.ace_options.wrap===false){
-      tag("ace-word-wrap").value="no-wrap"
-    }else if(settings.user.ace_options.indentedSoftWrap){
-      tag("ace-word-wrap").value="wrap-indented"
-    }else{
-      tag("ace-word-wrap").value="wrap"
-    }
-    //console.log("theme", settings.user.ace_options.theme)
-    //console.log("theme", settings.user.ace_options.theme.split("/")[2])
-    tag("examples-gist-id").value  = settings.workbook.examples_gist_id
-    tag("ace-theme").value  = settings.user.ace_options.theme.split("/")[2]
-    tag("ace-line-numbers").checked = settings.user.ace_options.showGutter
-    if(settings.workbook.load_gist_id){
-      tag("load-gist-id").value = settings.workbook.load_gist_id
+  }
+  static configure_settings(){
+    toggle_element('settings');
+    if(!tag('settings').className.includes("hidden")){
+      //tag('ace-theme').focus();
+      tag('settings-button').scrollIntoView(true);
+      //console.log("fontSize",settings.user.ace_options.fontSize)  
+      tag("ace-font-size").value = settings.user.ace_options.fontSize.replace("pt","")
+      if(settings.user.ace_options.wrap===false){
+        tag("ace-word-wrap").value="no-wrap"
+      }else if(settings.user.ace_options.indentedSoftWrap){
+        tag("ace-word-wrap").value="wrap-indented"
+      }else{
+        tag("ace-word-wrap").value="wrap"
+      }
+      //console.log("theme", settings.user.ace_options.theme)
+      //console.log("theme", settings.user.ace_options.theme.split("/")[2])
+      tag("examples-gist-id").value  = settings.workbook.examples_gist_id
+      tag("ace-theme").value  = settings.user.ace_options.theme.split("/")[2]
+      tag("ace-line-numbers").checked = settings.user.ace_options.showGutter
+      if(settings.workbook.load_gist_id){
+        tag("load-gist-id").value = settings.workbook.load_gist_id
+      }
     }
   }
-}
-
-
-async function save_settings(){
+  static async save_settings(){
 
   
-  if(tag("examples-gist-id").value && settings.workbook.examples_gist_id!==tag("examples-gist-id").value){
-    // different examples specified.  Need to rebuild
-    rebuild_examples(tag("examples-gist-id").value)
+    if(tag("examples-gist-id").value && settings.workbook.examples_gist_id!==tag("examples-gist-id").value){
+      // different examples specified.  Need to rebuild
+      rebuild_examples(tag("examples-gist-id").value)
+    }
+    settings.workbook.examples_gist_id=tag("examples-gist-id").value
+    settings.workbook.load_gist_id=tag("load-gist-id").value
+    settings.user.ace_options.theme="ace/theme/" + tag("ace-theme").value
+    settings.user.ace_options.fontSize=tag("ace-font-size").value + "pt"
+    settings.user.ace_options.showGutter=tag("ace-line-numbers").checked
+    switch(tag("ace-word-wrap").value){
+      case "wrap":
+        settings.user.ace_options.wrap=true
+        settings.user.ace_options.indentedSoftWrap=false
+        break
+      case "wrap-indented":
+        settings.user.ace_options.wrap=true
+        settings.user.ace_options.indentedSoftWrap=true
+        break
+      default:  
+        settings.user.ace_options.wrap="off"
+    }
+    //console.log(settings.user.ace_options)
+    apply_editor_options(settings.user.ace_options)
+  
+    await Jade.write_settings_to_workbook()
+  
+    hide_element('settings')
   }
-  settings.workbook.examples_gist_id=tag("examples-gist-id").value
-  settings.workbook.load_gist_id=tag("load-gist-id").value
-  settings.user.ace_options.theme="ace/theme/" + tag("ace-theme").value
-  settings.user.ace_options.fontSize=tag("ace-font-size").value + "pt"
-  settings.user.ace_options.showGutter=tag("ace-line-numbers").checked
-  switch(tag("ace-word-wrap").value){
-    case "wrap":
-      settings.user.ace_options.wrap=true
-      settings.user.ace_options.indentedSoftWrap=false
-      break
-    case "wrap-indented":
-      settings.user.ace_options.wrap=true
-      settings.user.ace_options.indentedSoftWrap=true
-      break
-    default:  
-      settings.user.ace_options.wrap="off"
+  static async write_settings_to_workbook(){
+    console.log("at Jade.write_settings_to_workbook", settings)
+    await Excel.run(async (excel)=>{
+      const xl_settings = excel.workbook.settings;
+      xl_settings.add("jade", settings);  // adds or sets the value
+      await excel.sync()
+    })
   }
-  //console.log(settings.user.ace_options)
-  apply_editor_options(settings.user.ace_options)
-
-  await write_settings_to_workbook()
-
-  hide_element('settings')
 }
 
-async function write_settings_to_workbook(){
-  console.log("at write_settings_to_workbook", settings)
-  await Excel.run(async (excel)=>{
-    const xl_settings = excel.workbook.settings;
-    xl_settings.add("jade", settings);  // adds or sets the value
-    await excel.sync()
-  })
-}
+
 
 function apply_editor_options(options){
-  for(const panel_name of globals.code_panels){
+  for(const panel_name of Jade.code_panels){
     //console.log("updating options on ", panel_name)
     const editor = ace.edit(panel_name + "-content");
     editor.setOptions(options)
@@ -229,7 +231,7 @@ async function submit_feedback(){
 function add_code_module(name,code){
   // a module built with whatever code is in default_code
   if(!code){// no code is pased in, determine which default code to import
-    if(globals.code_panels.length === 0){
+    if(Jade.code_panels.length === 0){
       code = default_code()
     }else{  
       code = default_code("panel_" + name.toLowerCase().split(" ").join("_") + "_module")
@@ -239,8 +241,8 @@ function add_code_module(name,code){
   add_code_editor(name, code, "")
   hide_element("add-module")
   show_element("open-editor")
-  show_panel(globals.code_panels[globals.code_panels.length-1])
-  write_module_to_workbook(code,globals.code_panels[globals.code_panels.length-1])
+  show_panel(Jade.code_panels[Jade.code_panels.length-1])
+  write_module_to_workbook(code,Jade.code_panels[Jade.code_panels.length-1])
 }
 
 async function get_code_from_gist(url){
@@ -273,7 +275,7 @@ async function get_style(style_name, url, integrate_now){
     settings.workbook.styles[style_name]=data
     if(integrate_now){
       document.getElementById("head_style").remove()
-      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + globals.css_suffix + "</style>")
+      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + settings.workbook.styles[style_name] + Jade.css_suffix + "</style>")
     }
   }
   
@@ -282,7 +284,7 @@ async function get_style(style_name, url, integrate_now){
 function set_style(style_name){
 
   //console.log("at set style", style_name)
-  let css_sfx = globals.css_suffix
+  let css_sfx = Jade.css_suffix
   if(!style_name){
     style_name="system"
     css_sfx=""
@@ -316,8 +318,8 @@ function build_panel(panel_name, show_close_button){
   div.id=panel_name
   div.style.display="none"
   div.innerHTML=panel_close_button(panel_name)
-  if(!globals.panels.includes(panel_name)){
-    globals.panels.push(panel_name)
+  if(!Jade.panels.includes(panel_name)){
+    Jade.panels.push(panel_name)
   }
   document.body.appendChild(div)
   if (show_close_button===undefined){
@@ -336,8 +338,8 @@ function show_automations(show_close_button){
   // get the list of functions
   //###################################################### need to iterate over all modules
   const html=['<h2 style="margin:0 0 0 1rem">Active Automations</h2><ol>']
-  //console.log("code panels", globals.code_panels)
-  for(const code_panel of globals.code_panels){
+  //console.log("code panels", Jade.code_panels)
+  for(const code_panel of Jade.code_panels){
     const editor = ace.edit(code_panel + "-content");
     const code = editor.getValue();
     const parsed_code=parse_code(code)
@@ -396,7 +398,7 @@ function show_automations(show_close_button){
 
 function show_panel(panel_name){
 
-  if(globals.code_panels.includes(panel_name)){
+  if(Jade.code_panels.includes(panel_name)){
     // set the size in case it is off
     if(tag(panel_name + "_function-names").length===0){
       // there are no function to run
@@ -410,26 +412,26 @@ function show_panel(panel_name){
     }
   }
   //################## 3 is  a problsm
-  if(globals.panels.slice(0, 3).includes(panel_name) || globals.code_panels.includes(panel_name)){
+  if(Jade.panels.slice(0, 3).includes(panel_name) || Jade.code_panels.includes(panel_name)){
     set_style()
   }
   
  //console.log("trying",panel_name)
-  for(const panel of globals.panels){
+  for(const panel of Jade.panels){
     if(panel===panel_name){
      //console.log("showing", panel)
       if(tag("selector_"+ panel_name)){
         tag("selector_"+ panel_name).value=panel_name
       }
       tag(panel).style.display="block"  
-      globals.panel_stack.push(panel)
+      Jade.panel_stack.push(panel)
     }else{
       //console.log(" hiding", panel)
       tag(panel).style.display="none"  
     }
   }
 
-  if(globals.code_panels.includes(panel_name)){
+  if(Jade.code_panels.includes(panel_name)){
     //focus the ace editor
     try{
       ace.edit(panel_name + "-content").focus()
@@ -470,9 +472,9 @@ console.log(1)
   
   //console.log("adding ace editor", module_name, module_xmlid)
   const panel_name = "panel_" + module_name.toLowerCase().split(" ").join("_") + "_module"
-  globals.code_panels.push(panel_name)
-  globals.panel_labels.push(panel_name_to_panel_label(panel_name))
-  globals.panels.push(panel_name)
+  Jade.code_panels.push(panel_name)
+  Jade.panel_labels.push(panel_name_to_panel_label(panel_name))
+  Jade.panels.push(panel_name)
   build_panel(panel_name, false)
   tag(panel_name).dataset.module_name = module_name
   tag(panel_name).dataset.module_xmlid = module_xmlid
@@ -559,7 +561,7 @@ console.log(1)
       name: "wrap",
       bindKey: {win: "Alt-z", mac: "Alt-z"},
       exec: function(editor) {
-        for(const panel of globals.code_panels){
+        for(const panel of Jade.code_panels){
           if(tag(panel).style.display==="block"){
             // we found the one that is visible
             toggle_wrap(panel)
@@ -574,7 +576,7 @@ console.log(1)
       name: "run",
       bindKey: {win: "Ctrl-enter", mac: "Command-enter"},
       exec: function(editor) {
-        for(const panel of globals.code_panels){
+        for(const panel of Jade.code_panels){
           if(tag(panel).style.display==="block"){
             // we found the one that is visible
             code_runner(tag(panel + '_function-names').value, panel)
@@ -588,7 +590,7 @@ console.log(1)
       name: "run_shift",
       bindKey: {win: "alt-enter", mac: "alt-enter"},
       exec: function(editor) {
-        for(const panel of globals.code_panels){
+        for(const panel of Jade.code_panels){
           if(tag(panel).style.display==="block"){
             // we found the one that is visible
             code_runner(tag(panel + '_function-names').value, panel)
@@ -903,6 +905,17 @@ function update_editor_script(panel_name) {
   // set the size of the editor in case there was a prior zoom
 
   
+
+
+  // get the code
+  const editor=ace.edit(panel_name + "-content")
+  const code = editor.getValue();
+
+  // save the script to the workbook.  This is the most important thing
+  // we are doing at the moment.  Do it first
+  console.log("about to write module")
+  write_module_to_workbook(code, panel_name)
+
   // update the height of the editor in case it has gotten out of synch
   tag(panel_name + "_editor-page").style.height = editor_height()
 
@@ -911,14 +924,6 @@ function update_editor_script(panel_name) {
   // we need to be sure it is defined correctly for modules, so we set it here
   incorporate_code('function show_html(html){open_canvas("html", html)}')
 
-
-  // get the code
-  const editor=ace.edit(panel_name + "-content")
-  const code = editor.getValue();
-
-  // save the script to the workbook
-  console.log("about to write module")
-  write_module_to_workbook(code, panel_name)
 
   //Check for syntax errors
   const parsed_code=parse_code(code)
@@ -974,13 +979,14 @@ function write_module_to_workbook(code, panel_name){
     //console.log("saving an existing book")
     save_module_to_workbook(code, module_name, settings, xmlid, options)
   }else{  // workbook not yet saved, function call will return an xmlid
-    xmlid=save_module_to_workbook(code, module_name, settings, xmlid, options)
-    //console.log("xmlid", xmlid)
-    tag(panel_name).dataset.module_xmlid = xmlid
+    
+    xmlid=save_module_to_workbook(code, module_name, settings, xmlid, options, tag(panel_name))
+    console.log("Freshly caught xmlid", xmlid)
+    
   }
 }
 
-function save_module_to_workbook(code, module_name, mod_settings, xmlid, options){
+function save_module_to_workbook(code, module_name, mod_settings, xmlid, options, tag_to_hold_new_xml_id){
   // options are currently being ignored, they are handled globally instead of at the module level
   // save to workbook
   Excel.run(async (excel)=>{
@@ -996,26 +1002,30 @@ function save_module_to_workbook(code, module_name, mod_settings, xmlid, options
     // save module without options
     const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><settings>"+btoa(JSON.stringify(mod_settings))+"</settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
     if(xmlid){
-      //console.log("updating xml", xmlid)
+      console.log("updating xml", xmlid, typeof xmlid)
       const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
       customXmlPart.setXml(module_xml)
       excel.sync()
-      return null
+      console.log("------- launched saving: existing -------")
+      
     }else{
       //console.log("creating xml")
       const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
       customXmlPart.load("id");
-      await excel.sync();
+      excel.sync();
 
       //console.log("customXmlPart",customXmlPart.getXml())
       // this is a newly created module and needs to have a custom xmlid part made for it
-      console.log("23443", settings)
+      console.log("23443", settings, customXmlPart.id)
       settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
-      write_settings_to_workbook()
-      return customXmlPart.id
-  
+      Jade.write_settings_to_workbook()
+      console.log("------- launched saving: newly created -------")
+      console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
+      if("tag_to_hold_new_xml_id"){
+        tag_to_hold_new_xml_id.dataset.module_xmlid = xmlid
+      }
     }
-    
+
   })
 
 }
@@ -1082,8 +1092,8 @@ function get_panel_selector(panel){
   const panel_label=panel_name_to_panel_label(panel)
   const sel = document.createElement("select")
   //console.log("appending panel=====", panel)
-  if(!globals.panel_labels.includes(panel_label)){
-    globals.panel_labels.push(panel_label)
+  if(!Jade.panel_labels.includes(panel_label)){
+    Jade.panel_labels.push(panel_label)
   }
   sel.className="panel-selector"
   // put the options in this panel selector
@@ -1106,11 +1116,11 @@ function update_panel_selector(sel){
   while(sel.length>0){
      sel.remove(0)
   }
-  for (let i=0; i<globals.panel_labels.length; i++) {
+  for (let i=0; i<Jade.panel_labels.length; i++) {
     var option = document.createElement("option");
-    option.value = panel_label_to_panel_name(globals.panel_labels[i]) 
+    option.value = panel_label_to_panel_name(Jade.panel_labels[i]) 
    //console.log("-->", option.value)
-    option.text = globals.panel_labels[i];
+    option.text = Jade.panel_labels[i];
     option.className="panel-selector-option"
     sel.appendChild(option);
   }
