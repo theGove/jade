@@ -31,13 +31,13 @@ body{
     font-size: 1.2rem;
     font-family: "Segoe UI Web (West European)",Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica Neue,sans-serif;
 }
-.ace-head{
+.jade-head{
     display:block;
-    background-color: rgb(10, 88, 45);
+    background-color: rgb(4, 117, 55);
     padding: 3rem 1rem 1rem 1rem;
    
 }
-.ace-logo{
+.jade-logo{
     display:inline-block;
     padding: 1rem;
     border-radius: 50%;
@@ -47,7 +47,7 @@ body{
     
 }
 
-.ace-heading-1{
+.jade-heading-1{
   font-weight: 100;
   color:white;
   font-size: 3rem;
@@ -56,7 +56,7 @@ body{
   line-height: 100%;
 }
 
-.ace-heading-2{
+.jade-heading-2{
     font-weight: 400;
     /*color:#800000;*/
     font-size: 2rem;
@@ -65,16 +65,16 @@ body{
     line-height: 100%;
   }
 
-  .ace-body{
+  .jade-body{
       padding: 0 1.5rem 1.5rem 1.5rem;
   }
-.ace-table{
+.jade-table{
         margin-left: auto;
         margin-right: auto;
         border-spacing: .5rem;
         font-weight: 500;
 }
-.ace-clickable{
+.jade-clickable{
   cursor:pointer
 
 }  
@@ -123,41 +123,41 @@ body{
 .fas, .far {
   color: #800000;
 }*/
-.ace-form{
+.jade-form{
     text-align: left;
     font-size: 1rem;
     width:15rem;
 
 }
-.ace-output{
+.jade-output{
     margin:.5rem;
  
 }
-.ace-output-header{
+.jade-output-header{
     background-color: rgb(6, 100, 48);
     color:white;
     padding:.2rem .2rem .2rem 1rem;
     font-weight: bold;
 }
 
-.ace-output-close{
+.jade-output-close{
     float:right;
     width:3rem;
     text-align: right;
 }
 
-.ace-output-body{
+.jade-output-body{
     background-color: white;
     color:black;
     padding: .5rem;
 }
 
-.ace-output-time{
+.jade-output-time{
     color: limegreen;
     margin-right: 1rem;
 }
 
-#ace-alert {
+#jade-alert {
     position: fixed;
     top: 0;
     border:2px solid black ;
@@ -167,20 +167,20 @@ body{
     left: 50%;
     transform: translate(-50%, 0);
 }
-.ace-alert-header{
+.jade-alert-header{
     background-color: royalBlue;
     color:white;
     padding:.2rem .2rem .2rem 1rem;
     font-weight: bold;
 }
 
-.ace-alert-close{
+.jade-alert-close{
     float:right;
     width:3rem;
     text-align: right;
 }
 
-.ace-alert-body{
+.jade-alert-body{
     background-color: white;
     color:black;
     padding: .5rem;
@@ -204,21 +204,21 @@ cursor:default;
 </head>
 <body>
   <div id="panel_home">  
-    <div class="ace-head">
-        <div class="ace-logo">
+    <div class="jade-head">
+        <div class="jade-logo">
           <img width="90" height="90" src="https://byuis.github.io/taskpane/assets/logo-filled.png" alt="JADE" title="JADE" />
         </div>
-        <h1 class="ace-heading-1">J.A.D.E.</h1>
+        <h1 class="jade-heading-1">J.A.D.E.</h1>
       </div> 
-    <div class="ace-body"> 
-    <h2  class="ace-heading-2">JavaScript Automation Development Environment</h2>
-      <table id="menu" class="ace-table"  style="margin-top: 1rem;">
-        <tr class="ace-clickable hidden" onclick="Jade.open_editor()" id="open-editor">
+    <div class="jade-body"> 
+    <h2  class="jade-heading-2">JavaScript Automation Development Environment</h2>
+      <table id="menu" class="jade-table"  style="margin-top: 1rem;">
+        <tr class="jade-clickable hidden" onclick="Jade.open_editor()" id="open-editor">
             <td><i class="fas fa-laptop-code"></i></td>
             <td>Open Code Editor</td>
         </tr>
 
-        <tr class="ace-clickable" onclick="Jade.toggle_element('add-module');tag('new-module-name').focus()"">
+        <tr class="jade-clickable" onclick="Jade.toggle_element('add-module');tag('new-module-name').focus()"">
           <td><i class="far fa-window-maximize"></i></td>
           <td>Add a Code Module</td>
         </tr>
@@ -227,7 +227,7 @@ cursor:default;
             <button id="module-add-button" onclick="Jade.add_code_module(tag('new-module-name').value)">Add</button></td>
         </tr>
 
-        <tr class="ace-clickable" onclick="Jade.show_import_module()">
+        <tr class="jade-clickable" onclick="Jade.show_import_module()">
             <td><i class="fas fa-file-import"></i></td>
           <td>Import a Code Module</td>
         </tr>
@@ -236,22 +236,22 @@ cursor:default;
             <button id="module-import-button" onclick="Jade.import_code_module(tag('gist-url').value)">Import</button></td>
         </tr>
 
-        <tr class="ace-clickable" onclick="Jade.open_examples()">
+        <tr class="jade-clickable" onclick="Jade.open_examples()">
           <td><i class="fas fa-graduation-cap"></i></td>
           <td>Show Examples</td>
         </tr>
 
-        <tr class="ace-clickable" onclick="Jade.open_automations()">
+        <tr class="jade-clickable" onclick="Jade.open_automations()">
           <td><i class="fas fa-list-ol"></i></td>
           <td>List Automations</td>
         </tr>
 
-        <tr class="ace-clickable">
+        <tr class="jade-clickable">
           <td><i class="fas fa-book"></i></td>
           <td><a class="menu-link" href="http://support.jsvba.com" target="_blank">View Documentation</a></td>
         </tr>
 
-        <tr class="ace-clickable" onclick="Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);">
+        <tr class="jade-clickable" onclick="Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);">
           <td><i class="far fa-comment-alt"></i></td>
           <td>Send Feedback</td>
         </tr>
@@ -282,20 +282,20 @@ cursor:default;
           </td>
         </tr>
 
-        <tr class="ace-clickable" onclick="Jade.configure_settings()">
+        <tr class="jade-clickable" onclick="Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);">
             <td><i class="fas fa-cog"></i></td>
             <td>Settings</td>
           </tr>
-          <tr id="settings" class="hidden">
-            <td colspan=2 style="text-align:center" class="ace-form"> 
-                <div class="ace-form"><a class="jade-info" title="The ID of a github gist with examples">Examples Gist ID</a></div>
+          <tr id="settings-page" class="hidden">
+            <td colspan=2 style="text-align:center" class="jade-form"> 
+                <div class="jade-form"><a class="jade-info" title="The ID of a github gist with examples">Examples Gist ID</a></div>
                 <input id="examples-gist-id" style="width:15.4rem">
 
-                <div class="ace-form" style="margin-top: .3rem;"><a class="jade-info" title="Load the code from this github gist when add-in loads.">Load Code Gist ID</a></div>
+                <div class="jade-form" style="margin-top: .3rem;"><a class="jade-info" title="Load the code from this github gist when add-in loads.">Load Code Gist ID</a></div>
                 <input id="load-gist-id" style="width:15.4rem">
 
-                <div class="ace-form" style="margin-top: .3rem;">Editor Theme</div>
-                <select id="ace-theme" style="width:15.4rem">
+                <div class="jade-form" style="margin-top: .3rem;">Editor Theme</div>
+                <select id="jade-theme" style="width:15.4rem">
                     <option value="ambiance">Ambiance</option>
                     <option value="chaos">Chaos</option>
                     <option value="chrome">Chrome</option>
@@ -336,14 +336,14 @@ cursor:default;
                     <option value="vibrant_ink">Vibrant Ink</option>
                     <option value="xcode">Xcode</option>
                 </select><br />
-                <div class="ace-form" style="margin-top: .3rem;">Editor Word Wrap</div>
-                <select id="ace-word-wrap" style="width:15.4rem">
+                <div class="jade-form" style="margin-top: .3rem;">Editor Word Wrap</div>
+                <select id="jade-word-wrap" style="width:15.4rem">
                     <option value="no-wrap" selected>Do not wrap long lines</option>
                     <option value="wrap">Wrap long lines</option>
                     <option value="wrap-indented">Wrap and indent long lines</option>
                 </select><br />
-                <div class="ace-form"  style="margin-top: .3rem;">Editor Font Size</div>
-                <select id="ace-font-size" style="width:15.4rem">
+                <div class="jade-form"  style="margin-top: .3rem;">Editor Font Size</div>
+                <select id="jade-font-size" style="width:15.4rem">
                     <option value="6">6pt</option>
                     <option value="8">8pt</option>
                     <option value="10">10pt</option>
@@ -355,7 +355,7 @@ cursor:default;
                     <option value="36">36pt</option>
                     <option value="48">48pt</option>
                 </select><br />
-                <div class="ace-form"  style="margin-top: .3rem;">Show Line Numbers <input id="ace-line-numbers" type="checkbox" value="true"/></div>
+                <div class="jade-form"  style="margin-top: .3rem;">Show Line Numbers <input id="jade-line-numbers" type="checkbox" value="true"/></div>
                 <br />
                   <button id="settings-button" onclick="Jade.save_settings()">Save</button>
             </td>
@@ -365,7 +365,7 @@ cursor:default;
 
     </table>
     <section id="sideload-msg"  style="display:none">
-        <h2 class="ace-heading-2">This addin must be run from inside Excel.</h2>
+        <h2 class="jade-heading-2">This addin must be run from inside Excel.</h2>
     </section>
     </div>
 </div>
