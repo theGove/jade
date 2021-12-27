@@ -1480,7 +1480,7 @@ class Jade{
     // This function is called when the addin opens.
     // un-comment a line below to take action on open.
   
-    // open_automations() // displays a list of functions for a user
+    // Jade.open_automations() // displays a list of functions for a user
   `
     if(panel_name){
       code += `  // Jade.show_panel('${panel_name}')      // shows this code editor
