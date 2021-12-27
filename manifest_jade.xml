@@ -6,6 +6,7 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="JavaScript Automation Development Environment"/>
   <Description DefaultValue="Store Javascript automations in your workbook."/>
+  <IconUrl DefaultValue="https://app.jsvba.com/assets/icon-32.png"/>
   <SupportUrl DefaultValue="https://support.jsvba.com"/>
   <AppDomains>
     <AppDomain>https://www.jsvba.org</AppDomain>
@@ -14,6 +15,8 @@
     <AppDomain>https://jsvba.com</AppDomain>
     <AppDomain>https://jade.jsvba.org</AppDomain>
     <AppDomain>https://jade.jsvba.com</AppDomain>
+    <AppDomain>https://app.jsvba.org</AppDomain>
+    <AppDomain>https://app.jsvba.com</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook"/>

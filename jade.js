@@ -348,7 +348,7 @@ class Jade{
   console.log("about ot load")
   if(Jade.settings.workbook.load_gist_id){
     console.log("in if")
-    load_gist(Jade.settings.workbook.load_gist_id)
+    Jade.load_gist(Jade.settings.workbook.load_gist_id)
     
   }
   
