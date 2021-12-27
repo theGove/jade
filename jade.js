@@ -344,7 +344,7 @@ class Jade{
   Jade.settings.workbook.styles.system=tag("head_style").innerText
   Jade.panels.push("panel_home")
   
-  //load code from one gist if specified.  
+  //load code from one gist if specified.  xxx
   console.log("about ot load")
   if(Jade.settings.workbook.load_gist_id){
     console.log("in if")
