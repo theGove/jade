@@ -686,14 +686,14 @@ class Jade{
              //console.log(function_text)
   
   
-              if(function_text.includes("ace.listing:")){ // this is a function we can run directly and it as the comment
+              if(function_text.includes("Jade.listing:")){ // this is a function we can run directly and it as the comment
                 //console.log("found a comment", func)
-                const comment = function_text.split("ace.listing:")[1].split("*/")[0]
+                const comment = function_text.split("Jade.listing:")[1].split("*/")[0]
                 try{
                   const comment_json=JSON.parse(comment)
                   html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
                 }catch(e){
-                  ;console.log("ace.listing was not valid JSON", comment)        
+                  ;console.log("Jade.listing was not valid JSON", comment)        
                 }
               }//for function on code page
             } 
@@ -1471,7 +1471,7 @@ class Jade{
   }
   static default_code(panel_name){
     let code = `async function write_timestamp(excel){
-      /*ace.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
+      /*Jade.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
     excel.workbook.getSelectedRange().values = new Date();
     await excel.sync();
   }
