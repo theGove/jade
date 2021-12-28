@@ -344,7 +344,7 @@ class Jade{
   Jade.settings.workbook.styles.system=tag("head_style").innerText
   Jade.panels.push("panel_home")
   
-  //load code from one gist if specified.  xxx
+  //load code from one gist if specified.  
   console.log("about ot load")
   if(Jade.settings.workbook.load_gist_id){
     console.log("in if")
@@ -1313,7 +1313,9 @@ class Jade{
         console.log("------- launched saving: newly created -------")
         console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
         if(tag_to_hold_new_xml_id){
-          tag_to_hold_new_xml_id.dataset.module_xmlid = xmlid
+          console.log("writing.....xmlid", customXmlPart.id)
+          tag_to_hold_new_xml_id.dataset.module_xmlid = customXmlPart.id
+          console.log(tag_to_hold_new_xml_id)
         }
       }
   
