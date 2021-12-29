@@ -18,27 +18,27 @@ class Jade{
   // consume it or import it.  Gists have multiple files
   // that become modules in jsvba
 
-    console.log("gisting", gist_id)
+   //console.log("gisting", gist_id)
     try{
         
       const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
       const data = await response.json()
       for(const file of Object.values(data.files)){
-          console.log("===================================")
-          console.log(file.content)
-          console.log("===================================")
+         //console.log("===================================")
+         //console.log(file.content)
+         //console.log("===================================")
           Jade.incorporate_code(file.content)
       }
       auto_exec()
       Jade.incorporate_code("auto_exec=null")
       
     }catch(e){
-      console.log("Error fetching gist", e)
+     //console.log("Error fetching gist", e)
     }
   }
   static async import_code_module(url_or_gist_id){
       Jade.settings.workbook.module_to_import=url_or_gist_id
-      console.log("at import code mod", Jade.settings.workbook)
+     //console.log("at import code mod", Jade.settings.workbook)
 
       Jade.hide_element("import-module")
       Jade.save_settings()
@@ -79,7 +79,7 @@ class Jade{
           // there was no error parsing the json, so this must be gist manifest
           // load the individual files
           try{
-              console.log("parsing json from gist")
+             //console.log("parsing json from gist")
               for(const file of Object.values(gist_json.files)){
                   files.push({name:file.filename.split(".js")[0], code:file.content})
               }  
@@ -88,17 +88,17 @@ class Jade{
               return
           }
       }catch(e){
-          console.log("module is not json")
+         //console.log("module is not json")
           // json was not valid, assume we have js
           // check to see if there is a comment that specifies a module name
           //
           let name = null
           if(data.includes("ace.module:")){ 
             try{
-                console.log("found ace lable")
+               //console.log("found ace lable")
               name = JSON.parse(data.split("ace.module:")[1].split("*/")[0]).name
             }catch(e){
-                console.log("ace label invalid")
+               //console.log("ace label invalid")
               const url_data=url.split("/")
               name=url_data[url_data.length-1]
             }
@@ -107,7 +107,7 @@ class Jade{
             //either there was no comment to specify a name, or there was an error in reading it
             // we won't overwrite a module unless it is named and the name is something other than "Code"
             // so here, we are going to give it a number to make it unique
-              console.log("no name for you")
+             //console.log("no name for you")
             let x=1
             while(!!tag(Jade.panel_label_to_panel_name("Code "+ x ))){x++}
             files.push({name:"Code " + x, code:data})
@@ -118,13 +118,13 @@ class Jade{
       // files:[{name:module1,content:"function zeta(){..."}, {name:module2,content:"function beta(){..."}]
       // we need to add or update based on the name.
       for(const file of files){
-          console.log(file.name,Jade.panel_label_to_panel_name(file.name))
+         //console.log(file.name,Jade.panel_label_to_panel_name(file.name))
           if(!!tag(Jade.panel_label_to_panel_name(file.name+" Module"))){
               // a module with this name already exists,  update
-              console.log("========= ready to update ============", file.name)
+             //console.log("========= ready to update ============", file.name)
               const editor=ace.edit(Jade.panel_label_to_panel_name(file.name) + "_module-content")
               editor.setValue(file.code)
-              console.log(editor.getValue())
+             //console.log(editor.getValue())
           }else{
               // no module with this name exists, append
               Jade.add_code_module(file.name, file.code)
@@ -139,7 +139,7 @@ class Jade{
       // adds a JS library to the head section of the HTML sheet
       const library = document.createElement('script');
       library.setAttribute('src',url);
-      console.log("library",library)
+     //console.log("library",library)
       document.head.appendChild(library);
   }
   static close_canvas(){
@@ -193,9 +193,9 @@ class Jade{
           //no output here, need a headdng
           heading=""
       }
-      if(heading!==undefined){
+      if(heading){
           // there is a header, so make a new block
-          console.log("at data")
+         //console.log("at data")
           const div = document.createElement("div")
           div.className="jade-output"
           const header = document.createElement("div")
@@ -236,7 +236,7 @@ class Jade{
   }
   static list_themes(){
       for(const [theme, url] of Object.entries(Jade.settings.workbook.styles)){
-          console.log(theme, url)
+         //console.log(theme, url)
       }
   }
 
@@ -330,7 +330,7 @@ class Jade{
               Jade.settings.workbook=xl_settings.value.workbook
               Jade.settings.user = xl_settings.value.user
             }// if Jade.settings null object
-            console.log("before start_me_up, Jade.settings", Jade.settings)
+           //console.log("before start_me_up, Jade.settings", Jade.settings)
             Jade.configure_settings()
             Jade.start_me_up()
           })
@@ -345,9 +345,9 @@ class Jade{
   Jade.panels.push("panel_home")
   
   //load code from one gist if specified.  
-  console.log("about ot load")
+ //console.log("about ot load")
   if(Jade.settings.workbook.load_gist_id){
-    console.log("in if")
+   //console.log("in if")
     Jade.load_gist(Jade.settings.workbook.load_gist_id)
     
   }
@@ -396,7 +396,7 @@ class Jade{
       const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
       //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
       const options=atob(doc.getElementsByTagName("options")[0].textContent)
-      console.log("just loaded module", module_name)
+     //console.log("just loaded module", module_name)
       //console.log("Jade.settings2", JSON.parse(Jade.settings))
       //console.log("options", options)
       //console.log("options-parsed", JSON.parse(options))
@@ -405,10 +405,10 @@ class Jade{
   })
 
 
-  console.log("end of  start_me_up, Jade.settings", Jade.settings)
+ //console.log("end of  start_me_up, Jade.settings", Jade.settings)
   }
   static configure_settings(){
-    console.log("Jade.settings", Jade.settings)
+   //console.log("Jade.settings", Jade.settings)
     //if(!tag('settings-page').className.includes("hidden")){
       //tag('jade-theme').focus();
       
@@ -461,7 +461,7 @@ class Jade{
     Jade.hide_element('settings-page')
   }
   static async write_settings_to_workbook(){
-    console.log("at Jade.write_settings_to_workbook", Jade.settings)
+   //console.log("at Jade.write_settings_to_workbook", Jade.settings)
     await Excel.run(async (excel)=>{
       const xl_settings = excel.workbook.settings;
       xl_settings.add("jade", Jade.settings);  // adds or sets the value
@@ -555,7 +555,7 @@ class Jade{
     // check for duplicate name--that wreaks havoc
     let found_panel=false
     for(const panel_name of Jade.code_panels){
-      console.log("panel_name",panel_name,Jade.panel_label_to_panel_name(name))
+     //console.log("panel_name",panel_name,Jade.panel_label_to_panel_name(name))
       if(panel_name === Jade.panel_label_to_panel_name(name) + "_module"){
         //we have a match, and that's a no-no
         alert('A module named "'+name+'" already exists in this workbook.  <br><br>Choose a differnt name.',"Invalid Module Name")
@@ -660,46 +660,47 @@ class Jade{
       const parsed_code=Jade.parse_code(code)
   
   
-     //console.log(parsed_code)
+      //console.log(parsed_code)
       
-  
-      for(const element of parsed_code.body){
-        let call_stmt = null
-        if(element.type==="FunctionDeclaration"){
-          if(element.id && element.id.name){
-            // this is a named function
-            if(element.params.length===0){
-              //there are no params. it is callable
-              call_stmt=element.id.name + "()"
-            } else if(element.params.length===1){
-              // there is one param.  
-              if(element.async){
-                if(("excel ctx context").includes(element.params[0].name)){
-                  // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
-                  call_stmt = "Excel.run(" + element.id.name + ")"
+      if(!parsed_code.error){ 
+        for(const element of parsed_code.body){
+          let call_stmt = null
+          if(element.type==="FunctionDeclaration"){
+            if(element.id && element.id.name){
+              // this is a named function
+              if(element.params.length===0){
+                //there are no params. it is callable
+                call_stmt=element.id.name + "()"
+              } else if(element.params.length===1){
+                // there is one param.  
+                if(element.async){
+                  if(("excel ctx context").includes(element.params[0].name)){
+                    // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
+                    call_stmt = "Excel.run(" + element.id.name + ")"
+                  }
                 }
-              }
-            }  
-            if(call_stmt){ // this is a function we can run directly
-              // check for comment
-              const function_text = window[ element.id.name]+''
-             //console.log(function_text)
-  
-  
-              if(function_text.includes("Jade.listing:")){ // this is a function we can run directly and it as the comment
-                //console.log("found a comment", func)
-                const comment = function_text.split("Jade.listing:")[1].split("*/")[0]
-                try{
-                  const comment_json=JSON.parse(comment)
-                  html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
-                }catch(e){
-                  ;console.log("Jade.listing was not valid JSON", comment)        
-                }
-              }//for function on code page
-            } 
+              }  
+              if(call_stmt){ // this is a function we can run directly
+                // check for comment
+                const function_text = window[ element.id.name]+''
+              //console.log(function_text)
+    
+    
+                if(function_text.includes("Jade.listing:")){ // this is a function we can run directly and it as the comment
+                  //console.log("found a comment", func)
+                  const comment = function_text.split("Jade.listing:")[1].split("*/")[0]
+                  try{
+                    const comment_json=JSON.parse(comment)
+                    html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
+                  }catch(e){
+                    ;console.log("Jade.listing was not valid JSON", comment)        
+                  }
+                }//for function on code page
+              } 
+            }
           }
-        }
-      } 
+        } 
+      }
     }
   
     if(html.length===1){
@@ -767,10 +768,10 @@ class Jade{
   static add_code_editor(module_name, code, module_xmlid, mod_settings, options_in){
     // Jade.settings are things gove is storing with the module
     // options are the options from the ace editor
-    console.log("Jade.settings", Jade.settings)
+   //console.log("Jade.settings", Jade.settings)
     let options = Jade.settings.user.ace_options
   
-  console.log(1)
+ //console.log(1)
     // not currently handling options at the editor level, so this block is diabled
     // if(options_in){// default options for the editor
     //   options=options_in
@@ -790,7 +791,7 @@ class Jade{
     tag(panel_name).dataset.module_name = module_name
     tag(panel_name).dataset.module_xmlid = module_xmlid
     
-    console.log(2)
+   //console.log(2)
   
    //console.log("initializing examples", tag(panel_name))
     
@@ -809,7 +810,7 @@ class Jade{
     div.style.backgroundColor = "#eee";
     div.id=panel_name + "_editor-bar"
     editor_container.appendChild(div);
-    console.log(3)
+   //console.log(3)
   
   
     //console.log("=======================================")
@@ -822,7 +823,7 @@ class Jade{
     box.style.height = Jade.editor_height()
     box.style.display = "inline-block";
     box.style.position = "relative";
-    console.log(4)
+   //console.log(4)
   
    //console.log("document",document.body.clientHeight);
    //console.log("scr",tag("panel_code_editor").Height);
@@ -834,7 +835,7 @@ class Jade{
     div.innerHTML = code.toHtmlEntities();
   
     box.appendChild(div);
-    console.log(5)
+   //console.log(5)
   
   
     editor_container.appendChild(box);
@@ -849,7 +850,7 @@ class Jade{
       script.async = true;
       script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
     });
-    console.log(6)
+   //console.log(6)
   
     scriptPromise.then(() => {
       const editor = ace.edit(panel_name + "-content");
@@ -987,15 +988,15 @@ class Jade{
     div.className="content"
     div.id="e_content"
     panel.appendChild(div)
-    console.log("gist_ids",gist_ids, Jade.settings)
+   //console.log("gist_ids",gist_ids, Jade.settings)
   
     const gist_list=[]
-    console.log("gist_ids.split(",")",gist_ids.split(","))
+   //console.log("gist_ids.split(",")",gist_ids.split(","))
     for(const gist of gist_ids.split(",")){
-      console.log("gisting",gist)
+     //console.log("gisting",gist)
       gist_list.push(gist.trim())
     }
-    console.log("gist_list",gist_list)
+   //console.log("gist_list",gist_list)
     const html=[]
     for(const gist of gist_list){
       html.push(`<div id="${gist}"></div>`)
@@ -1003,7 +1004,7 @@ class Jade{
     tag("e_content").innerHTML = html.join("");
   
     for(let i=0;i<gist_list.length;i++){
-      console.log("gist_list[i]",gist_list[i])
+     //console.log("gist_list[i]",gist_list[i])
       Jade.get_example_html(gist_list[i],i+1)// get the gist and integrate the examples
     }
   }
@@ -1011,13 +1012,13 @@ class Jade{
 
     const url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
     const gist_url=`https://gist.github.com/${gist_id}`
-    console.log("building examples",url)
+   //console.log("building examples",url)
     
-    console.log("about to fetch",url)
+   //console.log("about to fetch",url)
     fetch(url)
     .then((response) => response.text())
     .then((json_text) => {
-    //  console.log("json_text",json_text)
+    // //console.log("json_text",json_text)
       const data=JSON.parse(json_text)
   
       // now we have the data from the api call.  need to organize it--especially for order
@@ -1063,7 +1064,7 @@ class Jade{
     const elem = tag("page" + id);
     //console.log(id + id);
     if (elem.innerHTML === "") {
-      console.log("lines", lines)
+     //console.log("lines", lines)
       elem.innerHTML='<img id="loading-image" width="50" src="assets/loading.gif" />'
   
       fetch(url)
@@ -1210,7 +1211,7 @@ class Jade{
   
     // save the script to the workbook.  This is the most important thing
     // we are doing at the moment.  Do it first
-    console.log("about to write module")
+   //console.log("about to write module")
     Jade.write_module_to_workbook(code, panel_name)
   
     // update the height of the editor in case it has gotten out of synch
@@ -1293,11 +1294,11 @@ class Jade{
       // save module without options
       const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><Jade.settings>"+btoa(JSON.stringify(mod_settings))+"</Jade.settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
       if(xmlid){
-        console.log("updating xml", xmlid, typeof xmlid)
+       //console.log("updating xml", xmlid, typeof xmlid)
         const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
         customXmlPart.setXml(module_xml)
         excel.sync()
-        console.log("------- launched saving: existing -------")
+       //console.log("------- launched saving: existing -------")
         
       }else{
         //console.log("creating xml")
@@ -1307,15 +1308,15 @@ class Jade{
   
         //console.log("customXmlPart",customXmlPart.getXml())
         // this is a newly created module and needs to have a custom xmlid part made for it
-        console.log("23443", Jade.settings, customXmlPart.id)
+       //console.log("23443", Jade.settings, customXmlPart.id)
         Jade.settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
         Jade.write_settings_to_workbook()
-        console.log("------- launched saving: newly created -------")
-        console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
+       //console.log("------- launched saving: newly created -------")
+       //console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
         if(tag_to_hold_new_xml_id){
-          console.log("writing.....xmlid", customXmlPart.id)
+         //console.log("writing.....xmlid", customXmlPart.id)
           tag_to_hold_new_xml_id.dataset.module_xmlid = customXmlPart.id
-          console.log(tag_to_hold_new_xml_id)
+         //console.log(tag_to_hold_new_xml_id)
         }
       }
   
@@ -1421,7 +1422,7 @@ class Jade{
     return panel_label.toTitleCase()
   }
   static select_page(){
-    console.log("panel name",window.event.target.value)
+   //console.log("panel name",window.event.target.value)
     Jade.show_panel(window.event.target.value)
   }
   static show_element(tag_id){
@@ -1455,7 +1456,7 @@ class Jade{
   }
   static toggle_element(tag_id){
     // adds the hidden class from a tag's css
-    console.log("tag_id", tag_id)
+   //console.log("tag_id", tag_id)
     if (typeof tag_id==="string"){
       var the_tag=tag(tag_id)
     }else{  
@@ -1494,9 +1495,9 @@ class Jade{
     return code
   }
   static show_import_module(){
-    console.log("at show import", Jade.settings.workbook.module_to_import)
+   //console.log("at show import", Jade.settings.workbook.module_to_import)
     if(Jade.settings.workbook.module_to_import){
-      console.log("in if")
+     //console.log("in if")
       tag("gist-url").value=Jade.settings.workbook.module_to_import
     }
     Jade.toggle_element('import-module')
