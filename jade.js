@@ -1,13 +1,19 @@
+//https://closure-compiler.appspot.com/home
+// ==ClosureCompiler==
+// @compilation_level SIMPLE_OPTIMIZATIONS
+// @output_file_name default.js
+// ==/ClosureCompiler==
+const jade_settings={}
+let jade_css_suffix=""
+const jade_panels=['panel_home','panel_examples']
+const jade_panel_labels=["Home", "Examples", "Output"]
+const jade_code_panels=[]
+const jade_panel_stack=['panel_home']
+
 
 class Jade{
 
   // Class Properties
-  static settings={}
-  static css_suffix=""
-  static panels=['panel_home','panel_examples']
-  static panel_labels=["Home", "Examples", "Output"]
-  static code_panels=[]
-  static panel_stack=['panel_home']
 
 
   // Class Methods exposed to be called by Jade Users
@@ -37,8 +43,8 @@ class Jade{
     }
   }
   static async import_code_module(url_or_gist_id){
-      Jade.settings.workbook.module_to_import=url_or_gist_id
-     //console.log("at import code mod", Jade.settings.workbook)
+      jade_settings.workbook.module_to_import=url_or_gist_id
+     //console.log("at import code mod", jade_settings.workbook)
 
       Jade.hide_element("import-module")
       Jade.save_settings()
@@ -133,7 +139,7 @@ class Jade{
       
   }
   static set_css(user_css){
-      Jade.css_suffix=user_css
+      jade_css_suffix=user_css
   }
   static add_library(url){
       // adds a JS library to the head section of the HTML sheet
@@ -143,11 +149,11 @@ class Jade{
       document.head.appendChild(library);
   }
   static close_canvas(){
-      Jade.panel_stack.pop()
-      Jade.show_panel(Jade.panel_stack.pop())
+      jade_panel_stack.pop()
+      Jade.show_panel(jade_panel_stack.pop())
   }
   static open_editor(){
-      Jade.show_panel(Jade.code_panels[0])
+      Jade.show_panel(jade_code_panels[0])
   }
   static open_output(){
       Jade.show_panel("panel_output")
@@ -172,8 +178,8 @@ class Jade{
           Jade.build_panel(panel_name)
       }
 
-      if(!Jade.panels.includes(panel_name)){
-          Jade.panels.push(panel_name)
+      if(!jade_panels.includes(panel_name)){
+          jade_panels.push(panel_name)
       }
 
       Jade.show_panel(panel_name)
@@ -235,7 +241,7 @@ class Jade{
     Jade.set_style(theme_name)
   }
   static list_themes(){
-      for(const [theme, url] of Object.entries(Jade.settings.workbook.styles)){
+      for(const [theme, url] of Object.entries(jade_settings.workbook.styles)){
          //console.log(theme, url)
       }
   }
@@ -253,8 +259,8 @@ class Jade{
             //  const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
             await excel.sync()
             if(xl_settings.isNullObject){
-              // no Jade.settings so let's configuire some defaults
-              Jade.settings.user={
+              // no jade_settings so let's configuire some defaults
+              jade_settings.user={
                 ace_options:{
                   selectionStyle:"line",
                   highlightActiveLine:true,
@@ -293,9 +299,7 @@ class Jade{
                   overwrite:false,
                   newLineMode:"auto",
                   useWorker:false,
-                  useSoftTabs:true,
                   navigateWithinSoftTabs:false,
-                  tabSize:2,
                   wrap:true,
                   indentedSoftWrap:true,
                   foldStyle:"markbegin",
@@ -306,7 +310,7 @@ class Jade{
                   useSoftTabs:true
                 } 
               }
-              Jade.settings.workbook={
+              jade_settings.workbook={
                 code_module_ids:[],
                 examples_gist_id:"904983747625c3fdc8dfa69e0aaa0f08",
                 styles:{
@@ -327,10 +331,10 @@ class Jade{
               }
             }else{// if xl_settings a null object
               //console.log("xl_settings",xl_settings.value)
-              Jade.settings.workbook=xl_settings.value.workbook
-              Jade.settings.user = xl_settings.value.user
-            }// if Jade.settings null object
-           //console.log("before start_me_up, Jade.settings", Jade.settings)
+              jade_settings.workbook=xl_settings.value.workbook
+              jade_settings.user = xl_settings.value.user
+            }// if jade_settings null object
+           //console.log("before start_me_up, jade_settings", jade_settings)
             Jade.configure_settings()
             Jade.start_me_up()
           })
@@ -341,14 +345,14 @@ class Jade{
   }
   static start_me_up(){
   //console.log("at start_me_up")
-  Jade.settings.workbook.styles.system=tag("head_style").innerText
-  Jade.panels.push("panel_home")
+  jade_settings.workbook.styles.system=tag("head_style").innerText
+  jade_panels.push("panel_home")
   
   //load code from one gist if specified.  
  //console.log("about ot load")
-  if(Jade.settings.workbook.load_gist_id){
+  if(jade_settings.workbook.load_gist_id){
    //console.log("in if")
-    Jade.load_gist(Jade.settings.workbook.load_gist_id)
+    Jade.load_gist(jade_settings.workbook.load_gist_id)
     
   }
   
@@ -372,7 +376,7 @@ class Jade{
   // fit the editor to the windows on resize
   window.addEventListener('resize', function(event) {
     //console.log("hi")
-    for(const panel_name of Jade.code_panels){
+    for(const panel_name of jade_code_panels){
       tag(panel_name + "_editor-page").style.height = Jade.editor_height()
     }
   }, true);
@@ -380,13 +384,13 @@ class Jade{
   Jade.init_output()
   
   // ---------------- Initializing Code Editors -----------------------------
-  if(Jade.settings.workbook.code_module_ids.length>0){// show the button to view code modules
+  if(jade_settings.workbook.code_module_ids.length>0){// show the button to view code modules
     Jade.show_element("open-editor")
   }
-  //console.log("at init_code_editors       Jade.settings.workbook.code_module_ids", Jade.settings.workbook.code_module_ids)
+  //console.log("at init_code_editors       jade_settings.workbook.code_module_ids", jade_settings.workbook.code_module_ids)
   Excel.run(async (excel)=>{
     const parser = new DOMParser();
-    for(const code_module_id of Jade.settings.workbook.code_module_ids){
+    for(const code_module_id of jade_settings.workbook.code_module_ids){
       const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
       const xmlBlob = xmlpart.getXml();
       await excel.sync()
@@ -397,7 +401,7 @@ class Jade{
       //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
       const options=atob(doc.getElementsByTagName("options")[0].textContent)
      //console.log("just loaded module", module_name)
-      //console.log("Jade.settings2", JSON.parse(Jade.settings))
+      //console.log("jade_settings2", JSON.parse(jade_settings))
       //console.log("options", options)
       //console.log("options-parsed", JSON.parse(options))
       Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
@@ -405,71 +409,71 @@ class Jade{
   })
 
 
- //console.log("end of  start_me_up, Jade.settings", Jade.settings)
+ //console.log("end of  start_me_up, jade_settings", jade_settings)
   }
   static configure_settings(){
-   //console.log("Jade.settings", Jade.settings)
+   //console.log("jade_settings", jade_settings)
     //if(!tag('settings-page').className.includes("hidden")){
       //tag('jade-theme').focus();
       
-      //console.log("fontSize", Jade.settings.user.ace_options.fontSize)  
-      tag("jade-font-size").value = Jade.settings.user.ace_options.fontSize.replace("pt","")
-      if(Jade.settings.user.ace_options.wrap===false){
+      //console.log("fontSize", jade_settings.user.ace_options.fontSize)  
+      tag("jade-font-size").value = jade_settings.user.ace_options.fontSize.replace("pt","")
+      if(jade_settings.user.ace_options.wrap===false){
         tag("jade-word-wrap").value="no-wrap"
-      }else if(Jade.settings.user.ace_options.indentedSoftWrap){
+      }else if(jade_settings.user.ace_options.indentedSoftWrap){
         tag("jade-word-wrap").value="wrap-indented"
       }else{
         tag("jade-word-wrap").value="wrap"
       }
-      //console.log("theme", Jade.settings.user.ace_options.theme)
-      //console.log("theme", Jade.settings.user.ace_options.theme.split("/")[2])
-      tag("examples-gist-id").value  = Jade.settings.workbook.examples_gist_id
-      tag("jade-theme").value  = Jade.settings.user.ace_options.theme.split("/")[2]
-      tag("jade-line-numbers").checked = Jade.settings.user.ace_options.showGutter
-      if(Jade.settings.workbook.load_gist_id){
-        tag("load-gist-id").value = Jade.settings.workbook.load_gist_id
+      //console.log("theme", jade_settings.user.ace_options.theme)
+      //console.log("theme", jade_settings.user.ace_options.theme.split("/")[2])
+      tag("examples-gist-id").value  = jade_settings.workbook.examples_gist_id
+      tag("jade-theme").value  = jade_settings.user.ace_options.theme.split("/")[2]
+      tag("jade-line-numbers").checked = jade_settings.user.ace_options.showGutter
+      if(jade_settings.workbook.load_gist_id){
+        tag("load-gist-id").value = jade_settings.workbook.load_gist_id
       }
     //}
   }
   static async save_settings(){
-    if(tag("examples-gist-id").value && Jade.settings.workbook.examples_gist_id!==tag("examples-gist-id").value){
+    if(tag("examples-gist-id").value && jade_settings.workbook.examples_gist_id!==tag("examples-gist-id").value){
       // different examples specified.  Need to rebuild
       Jade.rebuild_examples(tag("examples-gist-id").value)
     }
-    Jade.settings.workbook.examples_gist_id=tag("examples-gist-id").value
-    Jade.settings.workbook.load_gist_id=tag("load-gist-id").value
-    Jade.settings.user.ace_options.theme="ace/theme/" + tag("jade-theme").value
-    Jade.settings.user.ace_options.fontSize=tag("jade-font-size").value + "pt"
-    Jade.settings.user.ace_options.showGutter=tag("jade-line-numbers").checked
+    jade_settings.workbook.examples_gist_id=tag("examples-gist-id").value
+    jade_settings.workbook.load_gist_id=tag("load-gist-id").value
+    jade_settings.user.ace_options.theme="ace/theme/" + tag("jade-theme").value
+    jade_settings.user.ace_options.fontSize=tag("jade-font-size").value + "pt"
+    jade_settings.user.ace_options.showGutter=tag("jade-line-numbers").checked
     switch(tag("jade-word-wrap").value){
       case "wrap":
-        Jade.settings.user.ace_options.wrap=true
-        Jade.settings.user.ace_options.indentedSoftWrap=false
+        jade_settings.user.ace_options.wrap=true
+        jade_settings.user.ace_options.indentedSoftWrap=false
         break
       case "wrap-indented":
-        Jade.settings.user.ace_options.wrap=true
-        Jade.settings.user.ace_options.indentedSoftWrap=true
+        jade_settings.user.ace_options.wrap=true
+        jade_settings.user.ace_options.indentedSoftWrap=true
         break
       default:  
-        Jade.settings.user.ace_options.wrap="off"
+        jade_settings.user.ace_options.wrap="off"
     }
-    //console.log(Jade.settings.user.ace_options)
-    Jade.apply_editor_options(Jade.settings.user.ace_options)
+    //console.log(jade_settings.user.ace_options)
+    Jade.apply_editor_options(jade_settings.user.ace_options)
   
     await Jade.write_settings_to_workbook()
   
     Jade.hide_element('settings-page')
   }
   static async write_settings_to_workbook(){
-   //console.log("at Jade.write_settings_to_workbook", Jade.settings)
+   //console.log("at Jade.write_settings_to_workbook", jade_settings)
     await Excel.run(async (excel)=>{
       const xl_settings = excel.workbook.settings;
-      xl_settings.add("jade", Jade.settings);  // adds or sets the value
+      xl_settings.add("jade", jade_settings);  // adds or sets the value
       await excel.sync()
     })
   }
   static apply_editor_options(options){
-    for(const panel_name of Jade.code_panels){
+    for(const panel_name of jade_code_panels){
       //console.log("updating options on ", panel_name)
       const editor = ace.edit(panel_name + "-content");
       editor.setOptions(options)
@@ -554,7 +558,7 @@ class Jade{
     if(!name){name="code"}
     // check for duplicate name--that wreaks havoc
     let found_panel=false
-    for(const panel_name of Jade.code_panels){
+    for(const panel_name of jade_code_panels){
      //console.log("panel_name",panel_name,Jade.panel_label_to_panel_name(name))
       if(panel_name === Jade.panel_label_to_panel_name(name) + "_module"){
         //we have a match, and that's a no-no
@@ -565,7 +569,7 @@ class Jade{
 
 
     if(!code){// no code is pased in, determine which default code to import
-      if(Jade.code_panels.length === 0){
+      if(jade_code_panels.length === 0){
         code = Jade.default_code()
       }else{  
         code = Jade.default_code("panel_" + name.toLowerCase().split(" ").join("_") + "_module")
@@ -577,8 +581,8 @@ class Jade{
     Jade.add_code_editor(name, code, "")
     Jade.hide_element("add-module")
     Jade.show_element("open-editor")
-    Jade.show_panel(Jade.code_panels[Jade.code_panels.length-1])
-    Jade.write_module_to_workbook(code,Jade.code_panels[Jade.code_panels.length-1])
+    Jade.show_panel(jade_code_panels[jade_code_panels.length-1])
+    Jade.write_module_to_workbook(code,jade_code_panels[jade_code_panels.length-1])
   }
   static async get_style(style_name, url, integrate_now){
 
@@ -586,20 +590,20 @@ class Jade{
        integrate_now=true
     }
   
-    if(!Jade.settings.workbook.styles[style_name]){
-      Jade.settings.workbook.styles[style_name]=url
+    if(!jade_settings.workbook.styles[style_name]){
+      jade_settings.workbook.styles[style_name]=url
     }
   
-    if(Jade.settings.workbook.styles[style_name].substr(0,8)==="https://"){
+    if(jade_settings.workbook.styles[style_name].substr(0,8)==="https://"){
       // the style has not yet been fetched
       //console.log("fetching")
-      const response = await fetch(Jade.settings.workbook.styles[style_name])
+      const response = await fetch(jade_settings.workbook.styles[style_name])
       const data = await response.text()
       //console.log("data",data)
-      Jade.settings.workbook.styles[style_name]=data
+      jade_settings.workbook.styles[style_name]=data
       if(integrate_now){
         document.getElementById("head_style").remove()
-        document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + Jade.settings.workbook.styles[style_name] + Jade.css_suffix + "</style>")
+        document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + jade_settings.workbook.styles[style_name] + jade_css_suffix + "</style>")
       }
     }
     
@@ -607,14 +611,14 @@ class Jade{
   static set_style(style_name){
 
     //console.log("at set style", style_name)
-    let css_sfx = Jade.css_suffix
+    let css_sfx = jade_css_suffix
     if(!style_name){
       style_name="system"
       css_sfx=""
   
     }
   
-    if(Jade.settings.workbook.styles[style_name].substr(0,8)==="https://"){
+    if(jade_settings.workbook.styles[style_name].substr(0,8)==="https://"){
       // this style has not been fetched.  Get it now
       //console.log("in iff")
       Jade.get_style(style_name)
@@ -624,7 +628,7 @@ class Jade{
     if(style_tag.dataset.name!==style_name ){
       // only update the style tag if it is a differnt name
       style_tag.remove()
-      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + Jade.settings.workbook.styles[style_name] + css_sfx + "</style>")
+      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + jade_settings.workbook.styles[style_name] + css_sfx + "</style>")
     }
     
   }
@@ -636,8 +640,8 @@ class Jade{
     div.id=panel_name
     div.style.display="none"
     div.innerHTML=Jade.panel_close_button(panel_name)
-    if(!Jade.panels.includes(panel_name)){
-      Jade.panels.push(panel_name)
+    if(!jade_panels.includes(panel_name)){
+      jade_panels.push(panel_name)
     }
     document.body.appendChild(div)
     if (show_close_button===undefined){
@@ -653,8 +657,8 @@ class Jade{
     // get the list of functions
     //###################################################### need to iterate over all modules
     const html=['<h2 style="margin:0 0 0 1rem">Active Automations</h2><ol>']
-    //console.log("code panels", Jade.code_panels)
-    for(const code_panel of Jade.code_panels){
+    //console.log("code panels", jade_code_panels)
+    for(const code_panel of jade_code_panels){
       const editor = ace.edit(code_panel + "-content");
       const code = editor.getValue();
       const parsed_code=Jade.parse_code(code)
@@ -713,7 +717,7 @@ class Jade{
   }
   static show_panel(panel_name){
 
-    if(Jade.code_panels.includes(panel_name)){
+    if(jade_code_panels.includes(panel_name)){
       // set the size in case it is off
       if(tag(panel_name + "_function-names").length===0){
         // there are no function to run
@@ -727,26 +731,26 @@ class Jade{
       }
     }
     //################## 3 is  a problsm
-    if(Jade.panels.slice(0, 3).includes(panel_name) || Jade.code_panels.includes(panel_name)){
+    if(jade_panels.slice(0, 3).includes(panel_name) || jade_code_panels.includes(panel_name)){
       Jade.set_style()
     }
     
    //console.log("trying",panel_name)
-    for(const panel of Jade.panels){
+    for(const panel of jade_panels){
       if(panel===panel_name){
        //console.log("showing", panel)
         if(tag("selector_"+ panel_name)){
           tag("selector_"+ panel_name).value=panel_name
         }
         tag(panel).style.display="block"  
-        Jade.panel_stack.push(panel)
+        jade_panel_stack.push(panel)
       }else{
         //console.log(" hiding", panel)
         tag(panel).style.display="none"  
       }
     }
   
-    if(Jade.code_panels.includes(panel_name)){
+    if(jade_code_panels.includes(panel_name)){
       //focus the ace editor
       try{
         ace.edit(panel_name + "-content").focus()
@@ -766,10 +770,10 @@ class Jade{
     }
   }
   static add_code_editor(module_name, code, module_xmlid, mod_settings, options_in){
-    // Jade.settings are things gove is storing with the module
+    // jade_settings are things gove is storing with the module
     // options are the options from the ace editor
-   //console.log("Jade.settings", Jade.settings)
-    let options = Jade.settings.user.ace_options
+   //console.log("jade_settings", jade_settings)
+    let options = jade_settings.user.ace_options
   
  //console.log(1)
     // not currently handling options at the editor level, so this block is diabled
@@ -784,9 +788,9 @@ class Jade{
     
     //console.log("adding ace editor", module_name, module_xmlid)
     const panel_name = "panel_" + module_name.toLowerCase().split(" ").join("_") + "_module"
-    Jade.code_panels.push(panel_name)
-    Jade.panel_labels.push(Jade.panel_name_to_panel_label(panel_name))
-    Jade.panels.push(panel_name)
+    jade_code_panels.push(panel_name)
+    jade_panel_labels.push(Jade.panel_name_to_panel_label(panel_name))
+    jade_panels.push(panel_name)
     Jade.build_panel(panel_name, false)
     tag(panel_name).dataset.module_name = module_name
     tag(panel_name).dataset.module_xmlid = module_xmlid
@@ -865,14 +869,14 @@ class Jade{
       editor.setOptions(options);
       editor.session.setMode("ace/mode/javascript");
   
-      //console.log("Jade.settings", Jade.settings)
+      //console.log("jade_settings", jade_settings)
       editor.moveCursorTo(mod_settings.cursorPosition.row, mod_settings.cursorPosition.column)
   
       editor.commands.addCommand({  // toggle word wrap
         name: "wrap",
         bindKey: {win: "Alt-z", mac: "Alt-z"},
         exec: function(editor) {
-          for(const panel of Jade.code_panels){
+          for(const panel of jade_code_panels){
             if(tag(panel).style.display==="block"){
               // we found the one that is visible
               Jade.toggle_wrap(panel)
@@ -887,7 +891,7 @@ class Jade{
         name: "run",
         bindKey: {win: "Ctrl-enter", mac: "Command-enter"},
         exec: function(editor) {
-          for(const panel of Jade.code_panels){
+          for(const panel of jade_code_panels){
             if(tag(panel).style.display==="block"){
               // we found the one that is visible
               Jade.code_runner(tag(panel + '_function-names').value, panel)
@@ -901,7 +905,7 @@ class Jade{
         name: "run_shift",
         bindKey: {win: "alt-enter", mac: "alt-enter"},
         exec: function(editor) {
-          for(const panel of Jade.code_panels){
+          for(const panel of jade_code_panels){
             if(tag(panel).style.display==="block"){
               // we found the one that is visible
               Jade.code_runner(tag(panel + '_function-names').value, panel)
@@ -979,7 +983,7 @@ class Jade{
   static fill_examples(gist_ids){
     //gist_ids is a comma delimited list of gist ids that hold examples
     
-    if(!gist_ids){gist_ids=Jade.settings.workbook.examples_gist_id}
+    if(!gist_ids){gist_ids=jade_settings.workbook.examples_gist_id}
     const panel_name="panel_examples"
     const panel=tag(panel_name)
    //console.log("initializing examples")
@@ -988,7 +992,7 @@ class Jade{
     div.className="content"
     div.id="e_content"
     panel.appendChild(div)
-   //console.log("gist_ids",gist_ids, Jade.settings)
+   //console.log("gist_ids",gist_ids, jade_settings)
   
     const gist_list=[]
    //console.log("gist_ids.split(",")",gist_ids.split(","))
@@ -1260,7 +1264,7 @@ class Jade{
   
     try{
       const editor = ace.edit(panel_name + "-content") 
-      Jade.settings.cursorPosition = editor.getCursorPosition()
+      jade_settings.cursorPosition = editor.getCursorPosition()
       options=editor.getOptions()
     }catch(e){
       //console.log("This is an expected error: ace editor not yet built",e)
@@ -1273,9 +1277,9 @@ class Jade{
   
     if (xmlid){  // workbook as already been saved and has and xmlid
       //console.log("saving an existing book")
-      Jade.save_module_to_workbook(code, module_name, Jade.settings, xmlid, options)
+      Jade.save_module_to_workbook(code, module_name, jade_settings, xmlid, options)
     }else{  // workbook not yet saved, function call will return an xmlid
-      Jade.save_module_to_workbook(code, module_name, Jade.settings, xmlid, options, tag(panel_name))
+      Jade.save_module_to_workbook(code, module_name, jade_settings, xmlid, options, tag(panel_name))
     }
   }
   static save_module_to_workbook(code, module_name, mod_settings, xmlid, options, tag_to_hold_new_xml_id){
@@ -1289,10 +1293,10 @@ class Jade{
         }
       }
       //The next line has been disabled because we are not currently maintaining options at the module level
-      //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><Jade.settings>"+btoa(JSON.stringify(Jade.settings))+"</Jade.settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
+      //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(jade_settings))+"</jade_settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
   
       // save module without options
-      const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><Jade.settings>"+btoa(JSON.stringify(mod_settings))+"</Jade.settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
+      const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(mod_settings))+"</jade_settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
       if(xmlid){
        //console.log("updating xml", xmlid, typeof xmlid)
         const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
@@ -1308,8 +1312,8 @@ class Jade{
   
         //console.log("customXmlPart",customXmlPart.getXml())
         // this is a newly created module and needs to have a custom xmlid part made for it
-       //console.log("23443", Jade.settings, customXmlPart.id)
-        Jade.settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
+       //console.log("23443", jade_settings, customXmlPart.id)
+        jade_settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
         Jade.write_settings_to_workbook()
        //console.log("------- launched saving: newly created -------")
        //console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
@@ -1381,8 +1385,8 @@ class Jade{
     const panel_label=Jade.panel_name_to_panel_label(panel)
     const sel = document.createElement("select")
     //console.log("appending panel=====", panel)
-    if(!Jade.panel_labels.includes(panel_label)){
-      Jade.panel_labels.push(panel_label)
+    if(!jade_panel_labels.includes(panel_label)){
+      jade_panel_labels.push(panel_label)
     }
     sel.className="panel-selector"
     // put the options in this panel selector
@@ -1404,11 +1408,11 @@ class Jade{
     while(sel.length>0){
        sel.remove(0)
     }
-    for (let i=0; i<Jade.panel_labels.length; i++) {
+    for (let i=0; i<jade_panel_labels.length; i++) {
       var option = document.createElement("option");
-      option.value = Jade.panel_label_to_panel_name(Jade.panel_labels[i]) 
+      option.value = Jade.panel_label_to_panel_name(jade_panel_labels[i]) 
      //console.log("-->", option.value)
-      option.text = Jade.panel_labels[i];
+      option.text = jade_panel_labels[i];
       option.className="panel-selector-option"
       sel.appendChild(option);
     }
@@ -1495,10 +1499,10 @@ class Jade{
     return code
   }
   static show_import_module(){
-   //console.log("at show import", Jade.settings.workbook.module_to_import)
-    if(Jade.settings.workbook.module_to_import){
+   //console.log("at show import", jade_settings.workbook.module_to_import)
+    if(jade_settings.workbook.module_to_import){
      //console.log("in if")
-      tag("gist-url").value=Jade.settings.workbook.module_to_import
+      tag("gist-url").value=jade_settings.workbook.module_to_import
     }
     Jade.toggle_element('import-module')
     tag('gist-url').focus()
