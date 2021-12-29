@@ -1,7 +1,7 @@
 //https://closure-compiler.appspot.com/home
 // ==ClosureCompiler==
-// @compilation_level SIMPLE_OPTIMIZATIONS
-// @output_file_name default.js
+// @compilation_level ADVANCED_OPTIMIZATIONS
+// @output_file_name jade-min.js
 // ==/ClosureCompiler==
 const jade_settings={}
 let jade_css_suffix=""
@@ -56,7 +56,7 @@ class Jade{
           // check to see if GIST url
           if(url_or_gist_id.toLowerCase().includes("gist.github.com")){
               const url_data = url_or_gist_id.split("/")
-              url='https://api.github.com/gists/' + data[data.length-1] + "?" + new Date()
+              url='https://api.github.com/gists/' + url_data[url_data.length-1] + "?" + new Date()
           }else{
               url=url_or_gist_id
           }
