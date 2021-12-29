@@ -1,8 +1,3 @@
-//https://closure-compiler.appspot.com/home
-// ==ClosureCompiler==
-// @compilation_level ADVANCED_OPTIMIZATIONS
-// @output_file_name jade-min.js
-// ==/ClosureCompiler==
 const jade_settings={}
 let jade_css_suffix=""
 const jade_panels=['panel_home','panel_examples']

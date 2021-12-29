@@ -22,6 +22,11 @@
   <Hosts>
     <Host Name="Workbook"/>
   </Hosts>
+  <Requirements>
+    <Sets>
+      <Set Name="ExcelApi" MinVersion="1.2"/>
+    </Sets>
+  </Requirements>
   <DefaultSettings>
     <SourceLocation DefaultValue="https://app.jsvba.com/index.html"/>
   </DefaultSettings>
