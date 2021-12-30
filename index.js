@@ -740,7 +740,7 @@ class Jade{
       try{
         ace.edit(panel_name + "-content").focus()
       }catch(e){
-        ;console.log("could not access ace.  This is expected",e)
+        //console.log("could not access ace.  This is expected",e)
       }
     }
     //################## 3 is  a problsm
