@@ -11,9 +11,23 @@
     <!-- <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>-->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.6.0/acorn.min.js" integrity="sha512-GxXGTaS+f1zewxxP8YJT8y74B9jarcQzPSP3j1+pYKk4pMmOikcKBZmjVP+U1+wAiAqv+FwISQXZnPRmdWXaEw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ext-language_tools.min.js" integrity="sha512-S7Whi8oQAQu/MK6AhBWufIJIyOvqORj+/1YDM9MaHeRalsZjzyYS7Usk4fsh+6J77PUhuk5v/BxaMDXRdWd1KA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
-    <script type="text/javascript" src="bundle.js"></script>
+    <script type="text/javascript" src="index.js"></script>
 
+<script>
+      function ie_message(){
+          Office.onReady(function(a){
+            try{
+              //;console.log("Running in IE: ", "EMPTY".includes("IE"))
+              Jade.officeReady(a)
+            }catch(e){
+              //console.log("catching",e)
+              document.getElementById("ie-msg").style.display = "block"
+            }
+          });
+      }
+        
+
+    </script>
     <style id="head_style" data-name="system">
 
 body{
@@ -197,7 +211,7 @@ cursor:default;
 </style>
 
 </head>
-<body>
+<body onload="ie_message()">
   <div id="panel_home">  
     <div class="jade-head">
         <div class="jade-logo">
@@ -206,37 +220,39 @@ cursor:default;
         <h1 class="jade-heading-1">J.A.D.E.</h1>
       </div> 
     <div class="jade-body"> 
-    <h2  class="jade-heading-2">Javascript Automation Development Environment</h2>
+    <section id="menu-msg"  style="display:none">
+      
+      <h2  class="jade-heading-2">JavaScript Automation Development Environment</h2>
       <table id="menu" class="jade-table"  style="margin-top: 1rem;">
         <tr class="jade-clickable hidden" id="open-editor">
             <td><i class="fas fa-laptop-code"></i></td>
             <td>Open Code Editor</td>
         </tr>
 
-        <tr class="jade-clickable" onclick="Jade.toggle_element('add-module');tag('new-module-name').focus()"">
+        <tr id="add-module-row" class="jade-clickable" >
           <td><i class="far fa-window-maximize"></i></td>
           <td>Add a Code Module</td>
         </tr>
         <tr id="add-module" class="hidden">
           <td colspan=2><input id="new-module-name" style="width:11rem" placeholder="Module Name"/>
-            <button id="module-add-button" onclick="Jade.add_code_module(tag('new-module-name').value)">Add</button></td>
+            <button id="module-add-button" >Add</button></td>
         </tr>
 
-        <tr class="jade-clickable" onclick="Jade.show_import_module()">
+        <tr id="show-import-module-row" class="jade-clickable">
             <td><i class="fas fa-file-import"></i></td>
           <td>Import a Code Module</td>
         </tr>
         <tr id="import-module" class="hidden">
           <td colspan=2> <input id="gist-url" style="width:10.5rem"  placeholder="URL or Gist ID"/>
-            <button id="module-import-button" onclick="Jade.import_code_module(tag('gist-url').value)">Import</button></td>
+            <button id="module-import-button">Import</button></td>
         </tr>
 
-        <tr class="jade-clickable" onclick="Jade.open_examples()">
+        <tr id="open-examples-row" class="jade-clickable">
           <td><i class="fas fa-graduation-cap"></i></td>
           <td>Show Examples</td>
         </tr>
 
-        <tr class="jade-clickable" onclick="Jade.open_automations()">
+        <tr id="list-automations-row" class="jade-clickable">
           <td><i class="fas fa-list-ol"></i></td>
           <td>List Automations</td>
         </tr>
@@ -246,7 +262,7 @@ cursor:default;
           <td><a class="menu-link" href="https://support.jsvba.com" target="_blank">View Documentation</a></td>
         </tr>
 
-        <tr class="jade-clickable" onclick="Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);">
+        <tr id="show-survey-row" class="jade-clickable">
           <td><i class="far fa-comment-alt"></i></td>
           <td>Send Feedback</td>
         </tr>
@@ -272,12 +288,12 @@ cursor:default;
                 </select><br />
                 <input id="fb-email" style="width:15rem" placeholder="Your email address (optional)"/><br />
                 <textarea id="fb-text" style="height:5rem;width:15rem;margin-top: 5px;" placeholder="The text of your feedback..."></textarea><br />
-                <button id="fb-button" onclick="Jade.submit_feedback()">Submit</button>
-                </div><div id="fb-message" style="width:15rem;color:red;text-align:left"></div>
+                <button id="fb-button">Submit</button>
+                <div id="fb-message" style="width:15rem;color:red;text-align:left"></div>
           </td>
         </tr>
 
-        <tr class="jade-clickable" onclick="Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);">
+        <tr id="show-settings-row" class="jade-clickable">
             <td><i class="fas fa-cog"></i></td>
             <td>Settings</td>
           </tr>
@@ -352,16 +368,24 @@ cursor:default;
                 </select><br />
                 <div class="jade-form"  style="margin-top: .3rem;">Show Line Numbers <input id="jade-line-numbers" type="checkbox" value="true"/></div>
                 <br />
-                  <button id="settings-button" onclick="Jade.save_settings()">Save</button>
+                  <button id="settings-button">Save</button>
             </td>
           </tr>
   
         
 
     </table>
-    <section id="sideload-msg"  style="display:none">
-        <h2 class="jade-heading-2">This addin must be run from inside Excel.</h2>
-    </section>
+  </section>
+  <section id="sideload-msg"  style="display:none">
+    <h2 class="jade-heading-2">This addin must be run from inside Excel.</h2>
+  </section>
+
+  <section id="ie-msg"  style="display:none; text-align:center">
+    <h2  class="jade-heading-2">JavaScript Automation Development Environment</h2><br>
+    Your version of Excel relies on Internet Explorer to render this add-in.  JADE will not work in this environment.
+  </section>
+  
+
     </div>
 </div>
 </body>

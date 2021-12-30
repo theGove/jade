@@ -1,12 +1,4 @@
-Office.onReady(function(a){
-  Jade.officeReady(a)
-  tag("open-editor").onclick = function(){Jade.open_editor()};
-});
-
-
-
-
-
+"use strict"
 class Jade{
 
   // Class Properties
@@ -58,7 +50,7 @@ class Jade{
           // check to see if GIST url
           if(url_or_gist_id.toLowerCase().includes("gist.github.com")){
               const url_data = url_or_gist_id.split("/")
-              url='https://api.github.com/gists/' + data[data.length-1] + "?" + new Date()
+              url='https://api.github.com/gists/' + url_data[url_data.length-1] + "?" + new Date()
           }else{
               url=url_or_gist_id
           }
@@ -256,6 +248,22 @@ class Jade{
 
   static officeReady(info){// invoked when the office addin infrastructure has loaded
       if (info.host === Office.HostType.Excel) {
+
+        tag("open-editor").onclick = function(){Jade.open_editor()};
+        tag("add-module-row").onclick = function(){Jade.toggle_element('add-module');tag('new-module-name').focus()};
+        tag("module-add-button").onclick = function(){Jade.add_code_module(tag('new-module-name').value)};
+        tag("show-import-module-row").onclick = Jade.show_import_module;
+        tag("module-import-button").onclick = function(){Jade.import_code_module(tag('gist-url').value)};
+        tag("open-examples-row").onclick = Jade.open_examples;
+        tag("list-automations-row").onclick = Jade.open_automations;
+        tag("show-survey-row").onclick = function(){Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);};
+        tag("fb-button").onclick = Jade.submit_feedback;
+        tag("show-settings-row").onclick = function(){Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);};
+        tag("settings-button").onclick = Jade.save_settings;
+      
+
+
+
           Excel.run(async (excel)=>{
             const xl_settings = excel.workbook.settings.getItemOrNullObject("jade").load("value");
             //  const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
@@ -339,10 +347,11 @@ class Jade{
            //console.log("before start_me_up, Jade.settings", Jade.settings)
             Jade.configure_settings()
             Jade.start_me_up()
+            document.getElementById("menu-msg").style.display = "block"
           })
       }else{
-          document.getElementById("sideload-msg").style.display = "flex"
-          document.getElementById("menu").style.display = "none"
+          document.getElementById("sideload-msg").style.display = "block"
+          
       }
   }
   static start_me_up(){
@@ -808,7 +817,7 @@ class Jade{
     let div = document.createElement("div");
     div.style.padding=".2rem"
     div.style.verticalAlign="middle"
-    div.innerHTML = '<button title="Save code to workbook" onclick="Jade.update_editor_script(\'' + panel_name + '\')">Save</button> <button  title="Save code to workbook and execute" onclick="Jade.code_runner(tag(\'' + panel_name + '_function-names' + '\').value,\'' + panel_name + '\')">Run</button> <select id="' + panel_name + '_function-names"></select>';
+    div.innerHTML = '<button title="Save code to workbook" onclick="Jade.update_editor_script(\'' + panel_name + '\')">Save</button> <button onclick="Jade.code_runner(tag(\'' + panel_name + '_function-names' + '\').value,\'' + panel_name + '\')" title="Save code to workbook and execute">Run</button> <select id="' + panel_name + '_function-names"></select>';
     div.style.height="22px"
     div.style.fontFamily="auto";
     div.style.fontSize = "1rem";
@@ -816,7 +825,7 @@ class Jade{
     div.style.backgroundColor = "#eee";
     div.id=panel_name + "_editor-bar"
     editor_container.appendChild(div);
-   //console.log(3)
+   //console.log(3)  onclick="Jade.code_runner(tag(\'' + panel_name + '_function-names' + '\').value,\'' + panel_name + '\')"
   
   
     //console.log("=======================================")
@@ -947,6 +956,9 @@ class Jade{
     }catch(e){
      ;console.log("catch",e)
     }  
+
+
+
   }
   static code_runner(script_name,panel_name){
     //console.log(script_name,panel_name)
@@ -1533,17 +1545,13 @@ String.prototype.toHtmlEntities = function() {
 
 
 String.prototype.toTitleCase=function() {
-  str = this.toLowerCase().split(' ');
+  let str = this.toLowerCase().split(' ');
   for (var i = 0; i < str.length; i++) {
     str[i] = str[i].charAt(0).toUpperCase() + str[i].slice(1); 
   }
   return str.join(' ');
 }
 
-function tag(id){
-  // a short way to get an element by ID
-  return document.getElementById(id)
-}
 function alert(data, heading){
   if(tag("jade-alert")){tag("jade-alert").remove()}
   if(!heading){heading="System Message"}
@@ -1560,4 +1568,8 @@ function alert(data, heading){
   div.appendChild(body)
   document.body.appendChild(div)
 
+}
+function tag(id){
+  // a short way to get an element by ID
+  return document.getElementById(id)
 }

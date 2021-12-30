@@ -1,0 +1,29 @@
+{
+  "name": "babel-tutorial-transpile-to-es5",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "serve",
+    "build:babel": "babel src -d lib",
+    "build:webpack": "webpack"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.11.4",
+    "@babel/plugin-proposal-class-properties": "^7.16.5",
+    "@babel/preset-env": "^7.11.0",
+    "babel-loader": "^8.2.3",
+    "serve": "^11.3.2",
+    "webpack": "^4.44.1",
+    "webpack-cli": "^3.3.12"
+  },
+  "dependencies": {
+    "core-js": "^3.20.1",
+    "regenerator-runtime": "^0.13.9",
+    "whatwg-fetch": "^3.6.2"
+  }
+}
