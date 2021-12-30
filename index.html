@@ -16,11 +16,13 @@
 <script>
       function ie_message(){
           Office.onReady(function(a){
-            try{
-              //;console.log("Running in IE: ", "EMPTY".includes("IE"))
-              Jade.officeReady(a)
-            }catch(e){
-              //console.log("catching",e)
+            if (navigator.userAgent.indexOf("Trident") === -1) {
+              try{
+                Jade.officeReady(a)
+              }catch(e){
+                document.getElementById("ie-msg").style.display = "block"
+              }
+            }else{
               document.getElementById("ie-msg").style.display = "block"
             }
           });
@@ -382,11 +384,9 @@ cursor:default;
 
   <section id="ie-msg"  style="display:none; text-align:center">
     <h2  class="jade-heading-2">JavaScript Automation Development Environment</h2><br>
-    Your version of Excel relies on Internet Explorer to render this add-in.  JADE will not work in this environment.
+    This add-in won't run in your version of Office. Please upgrade to either one-time purchase Office 2021 or to a Microsoft 365 account.
   </section>
-  
-
-    </div>
+  </div>
 </div>
 </body>
 
