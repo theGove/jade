@@ -20,7 +20,7 @@
               try{
                 Jade.officeReady(a)
               }catch(e){
-                document.getElementById("ie-msg").style.display = "block"
+                document.getElementById("error-msg").style.display = "block"
               }
             }else{
               document.getElementById("ie-msg").style.display = "block"
@@ -380,6 +380,10 @@ cursor:default;
   </section>
   <section id="sideload-msg"  style="display:none">
     <h2 class="jade-heading-2">This addin must be run from inside Excel.</h2>
+  </section>
+
+  <section id="error-msg"  style="display:none">
+    <h2 class="jade-heading-2">There was an error loading this add-in.  Bad programmer.  No doughnuts for you.</h2>
   </section>
 
   <section id="ie-msg"  style="display:none; text-align:center">
