@@ -1,10 +1,10 @@
 "use strict"
-const settings={}
-const css_suffix=""
-const panels=['panel_home','panel_examples']
-const panel_labels=["Home", "Examples", "Output"]
-const code_panels=[]
-const panel_stack=['panel_home']
+const jade_settings={}
+const jade_css_suffix=""
+const jade_panels=['panel_home','panel_examples']
+const jade_panel_labels=["Home", "Examples", "Output"]
+const jade_code_panels=[]
+const jade_panel_stack=['panel_home']
 
 class Jade{
 
