@@ -214,13 +214,13 @@ class Jade{
           header.innerHTML = '<span class="jade-output-time">' + hours + ":" + ("0"+d.getMinutes()).slice(-2) + ":" + ("0"+d.getSeconds()).slice(-2) + ampm + "</span> " + heading + '<div class="jade-output-close"><i class="fas fa-times" style="color:white;margin-right:.3rem;cursor:pointer" onclick="this.parentNode.parentNode.parentNode.remove()"></div>'
           const body = document.createElement("div")
           body.className="jade-output-body"  
-          body.innerHTML = '<div style="margin:0;font-family: monospace;">' + data.replaceAll("\n","<br />")  + "<br />"+ "</div>"
+          body.innerHTML = '<div style="margin:0;font-family: monospace;">' + data.split("\n").join("<br />")  + "<br />"+ "</div>"
           div.appendChild(header)
           div.appendChild(body)
           tag("panel_output").appendChild(div)
       }else{
           // no header provided, append to most recently added
-          tag("panel_output").lastChild.lastChild.firstChild.innerHTML += data.replaceAll("\n","<br />") + "<br />"
+          tag("panel_output").lastChild.lastChild.firstChild.innerHTML += data.split("\n").join("<br />") + "<br />"
       }
 
     
@@ -1452,7 +1452,7 @@ class Jade{
     }else{  
       the_tag=tag_id
     }
-    the_tag.className=the_tag.className.replaceAll("hidden","")
+    the_tag.className=the_tag.className.split("hidden").join("")
   }  
   static hide_element(tag_id){
     // adds the hidden class from a tag's css
