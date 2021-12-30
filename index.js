@@ -1,6 +1,6 @@
 "use strict"
 const jade_settings={}
-const jade_css_suffix=""
+let jade_css_suffix=""
 const jade_panels=['panel_home','panel_examples']
 const jade_panel_labels=["Home", "Examples", "Output"]
 const jade_code_panels=[]
