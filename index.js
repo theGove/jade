@@ -154,8 +154,8 @@ class Jade{
   static open_output(){
       Jade.show_panel("panel_output")
   }
-  static open_automations(show_close_button){
-      Jade.show_automations(show_close_button)
+  static open_automations(show_close_button, heading, list){
+      Jade.show_automations(show_close_button, heading, list)
   }
   static reset(){
       Jade.show_panel("panel_home")
@@ -664,59 +664,65 @@ class Jade{
       Jade.hide_element("close_" + panel_name)
     }
   }
-  static show_automations(show_close_button){
+  static show_automations(show_close_button, heading, list){
     const panel_name="panel_listings"
-  
     // get the list of functions
     //###################################################### need to iterate over all modules
-    const html=['<h2 style="margin:0 0 0 1rem">Active Automations</h2><ol>']
+    const html=[`<h2 style="margin:0 0 0 1rem">${heading || 'Active Automations'}</h2><ol>`]
     //console.log("code panels", jade_code_panels)
-    for(const code_panel of jade_code_panels){
-      const editor = ace.edit(code_panel + "-content");
-      const code = editor.getValue();
-      const parsed_code=Jade.parse_code(code)
-  
-  
-      //console.log(parsed_code)
+    if(list){// a list has been provide, use it
+      //console.log("list", list)
+      for(const entry of list){
+        html.push('<li onclick="'+entry.action+'" style="cursor:pointer"><b>'+entry.name+'</b>: '+entry.description+'</li>')
+      }
+    }else{// no list has been provide, so we read from the code modules in this workbook
+      for(const code_panel of jade_code_panels){
+        const editor = ace.edit(code_panel + "-content");
+        const code = editor.getValue();
+        const parsed_code=Jade.parse_code(code)
+    
+    
+        //console.log(parsed_code)
+        
+        if(!parsed_code.error){ 
+          for(const element of parsed_code.body){
+            let call_stmt = null
+            if(element.type==="FunctionDeclaration"){
+              if(element.id && element.id.name){
+                // this is a named function
+                if(element.params.length===0){
+                  //there are no params. it is callable
+                  call_stmt=element.id.name + "()"
+                } else if(element.params.length===1){
+                  // there is one param.  
+                  if(element.async){
+                    if(("excel ctx context").includes(element.params[0].name)){
+                      // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
+                      call_stmt = "Excel.run(" + element.id.name + ")"
+                    }
+                  }
+                }  
+                if(call_stmt){ // this is a function we can run directly
+                  // check for comment
+                  const function_text = window[ element.id.name]+''
+                //console.log(function_text)
       
-      if(!parsed_code.error){ 
-        for(const element of parsed_code.body){
-          let call_stmt = null
-          if(element.type==="FunctionDeclaration"){
-            if(element.id && element.id.name){
-              // this is a named function
-              if(element.params.length===0){
-                //there are no params. it is callable
-                call_stmt=element.id.name + "()"
-              } else if(element.params.length===1){
-                // there is one param.  
-                if(element.async){
-                  if(("excel ctx context").includes(element.params[0].name)){
-                    // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
-                    call_stmt = "Excel.run(" + element.id.name + ")"
-                  }
-                }
-              }  
-              if(call_stmt){ // this is a function we can run directly
-                // check for comment
-                const function_text = window[ element.id.name]+''
-              //console.log(function_text)
-    
-    
-                if(function_text.includes("Jade.listing:")){ // this is a function we can run directly and it as the comment
-                  //console.log("found a comment", func)
-                  const comment = function_text.split("Jade.listing:")[1].split("*/")[0]
-                  try{
-                    const comment_json=JSON.parse(comment)
-                    html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
-                  }catch(e){
-                    ;console.log("Jade.listing was not valid JSON", comment)        
-                  }
-                }//for function on code page
-              } 
+      
+                  if(function_text.includes("Jade.listing:")){ // this is a function we can run directly and it as the comment
+                    //console.log("found a comment", func)
+                    const comment = function_text.split("Jade.listing:")[1].split("*/")[0]
+                    try{
+                      const comment_json=JSON.parse(comment)
+                      html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
+                    }catch(e){
+                      ;console.log("Jade.listing was not valid JSON", comment)        
+                    }
+                  }//for function on code page
+                } 
+              }
             }
-          }
-        } 
+          } 
+        }
       }
     }
   
