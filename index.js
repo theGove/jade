@@ -1500,23 +1500,23 @@ class Jade{
   }
   static default_code(panel_name){
     let code = `async function write_timestamp(excel){
-      /*Jade.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
-    excel.workbook.getSelectedRange().values = new Date();
-    await excel.sync();
-  }
+  /*Jade.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
+  excel.workbook.getSelectedRange().values = new Date();
+  await excel.sync();
+}
   
-  function auto_exec(){
-    // This function is called when the addin opens.
-    // un-comment a line below to take action on open.
+function auto_exec(){
+  // This function is called when the addin opens.
+  // un-comment a line below to take action on open.
   
-    // Jade.open_automations() // displays a list of functions for a user
-  `
+  // Jade.open_automations() // displays a list of functions for a user
+`
     if(panel_name){
       code += `  // Jade.show_panel('${panel_name}')      // shows this code editor
-  }`
+}`
     }else{
       code += `  // Jade.open_editor()      // shows the code editor
-  }`
+}`
     }
     return code
   }
