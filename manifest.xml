@@ -7,7 +7,7 @@
   <DisplayName DefaultValue="JavaScript Automation Development Environment"/>
   <Description DefaultValue="Store Javascript automations in your workbook."/>
   <IconUrl DefaultValue="https://app.jsvba.com/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://app.jsvba.com/assets/icon-80.png" />
+  <HighResolutionIconUrl DefaultValue="https://app.jsvba.com/assets/icon-64.png" />
   <SupportUrl DefaultValue="https://support.jsvba.com/2021/12/support.html"/>
   <AppDomains>
     <AppDomain>https://www.jsvba.org</AppDomain>
