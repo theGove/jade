@@ -5,11 +5,13 @@ const jade_panels=['panel_home','panel_examples']
 const jade_panel_labels=["Home", "Examples", "Output"]
 const jade_code_panels=[]
 const jade_panel_stack=['panel_home']
+const jade_imports={}
+const jade_public={}
 
 class Jade{
 
   // Class Properties
-
+  
 
 
   // Class Methods exposed to be called by Jade Users
@@ -20,7 +22,7 @@ class Jade{
   // consume it or import it.  Gists have multiple files
   // that become modules in jsvba
 
-   //console.log("gisting", gist_id)
+  //console.log("gisting", gist_id)
     try{
         
       const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
@@ -29,7 +31,7 @@ class Jade{
          //console.log("===================================")
          //console.log(file.content)
          //console.log("===================================")
-          Jade.incorporate_code(file.content)
+          await Jade.incorporate_code(file.content)
       }
       auto_exec()
       Jade.incorporate_code("auto_exec=null")
@@ -231,6 +233,21 @@ class Jade{
       Jade.show_panel(panel_name)
   }
 
+  static async use(name){
+    // imports a gist using a name to find the gist ID
+    if(!jade_imports[name]){
+      // only import once
+     //console.log(jade_settings.workbook)
+      const url = jade_settings.workbook.gist_name_server + name + "?a=4"
+     //console.log("------------->",url)
+      const response = await fetch(url)
+      const gist_id = await response.text()
+     //console.log(gist_id)
+      await Jade.load_gist(gist_id)
+      jade_imports[name]=gist_id
+    }
+  }
+
   // Class methods that still need work before shown to the public
 
   static set_theme(theme_name){
@@ -244,7 +261,7 @@ class Jade{
 
 
   // Class Methods NOT meant to be called by Jade Users
-  // It's not really a problem if they do, we just don't
+  // It's not really a problem if they do, we just don't1
   // think they are useful and we don't document them.
 
 
@@ -324,6 +341,7 @@ class Jade{
               }
               jade_settings.workbook={
                 code_module_ids:[],
+                gist_name_server:"https://gns.jsvba.com/",
                 examples_gist_id:"904983747625c3fdc8dfa69e0aaa0f08",
                 styles:{
                   system:null,
@@ -1581,3 +1599,5 @@ function tag(id){
   // a short way to get an element by ID
   return document.getElementById(id)
 }
+class jade extends Jade{}// just let lowercase call to jade work
+class JADE extends Jade{}// just let uppercase call to jade work

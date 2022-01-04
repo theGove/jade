@@ -6,8 +6,8 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="JavaScript Automation Development Environment"/>
   <Description DefaultValue="Store Javascript automations in your workbook."/>
-  <IconUrl DefaultValue="https://localhost:3333/ee-atlas/s/jade/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3333/ee-atlas/s/jade/assets/icon-80.png" />
+  <IconUrl DefaultValue="https://localhost:3333/ee-atlas/s/jade/assets/icon-32-red.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3333/ee-atlas/s/jade/assets/icon-80-red.png" />
   <SupportUrl DefaultValue="https://support.jsvba.com/2021/12/support.html"/>
   <AppDomains>
     <AppDomain>https://www.jsvba.org</AppDomain>
