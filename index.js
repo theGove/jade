@@ -360,7 +360,7 @@ class Jade{
                   showFoldWidgets:true,
                   displayIndentGuides:true,
                   showGutter:true,
-                  fontSize:"14pt",
+                  fontSize:"12pt",
                   scrollPastEnd:0,
                   theme:"ace/theme/tomorrow",
                   maxPixelHeight:0,
