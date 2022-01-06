@@ -5,8 +5,21 @@ const jade_panels=['panel_home','panel_examples']
 const jade_panel_labels=["Home", "Examples", "Output"]
 const jade_code_panels=[]
 const jade_panel_stack=['panel_home']
-const jade_imports={}
+const jade_imports={}// used to keep track of which modules have been imported so we don't try to import twice
 const jade_public={}
+const jade_modules = {
+//  functions: {},
+  add(mod,...arr){
+    //console.log("at jade_modules.add")
+    if(!this[mod]){this[mod]={}}
+    //console.log("arr",arr)
+    //console.log("mod",mod)
+      for(const func of arr){
+         //console.log("func",func)
+          this[mod][func.name] = func
+      }
+  }
+}
 
 class Jade{
 
@@ -15,29 +28,61 @@ class Jade{
 
 
   // Class Methods exposed to be called by Jade Users
+  static automate(fn){
+    return (...event) => Excel.run((excel)=>fn(excel,...event))
+  }
 
-
-  static async load_gist(gist_id){
+  static async load_gist(gist_id, module_name){
   // We can use gist as repository for the code then either
   // consume it or import it.  Gists have multiple files
   // that become modules in jsvba
+
+  // if module_name is null, load at global scope
+  // if module_name is specified, use that name as the module name
+  // otherwise, use the filename from the gist as the module name
+  
 
   //console.log("gisting", gist_id)
     try{
         
       const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
       const data = await response.json()
-      for(const file of Object.values(data.files)){
-         //console.log("===================================")
-         //console.log(file.content)
-         //console.log("===================================")
-          await Jade.incorporate_code(file.content)
+      try{
+        for(const file of Object.values(data.files)){
+          if(module_name===null){
+            await Jade.incorporate_code(file.content)
+            try{
+              auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+            //Jade.incorporate_code("auto_exec=null")
+            auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
+          }else if(!module_name){
+            const module_name=Jade.file_name_to_module_name(file.filename)
+            await Jade.incorporate_code(file.content, module_name)
+            try{
+              jade_modules[module_name].auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+          }else{
+            //console.log("module_name", module_name)
+            //console.log("file.content", file.content)
+            await Jade.incorporate_code(file.content, module_name)
+            try{
+              jade_modules[module_name].auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+          }
+        }
+      }catch(e){
+        ;console.error("Error loading gist",e)
       }
-      auto_exec()
-      Jade.incorporate_code("auto_exec=null")
       
     }catch(e){
-     //console.log("Error fetching gist", e)
+     ;console.error("Error fetching gist", e)
     }
   }
   static async import_code_module(url_or_gist_id){
@@ -54,7 +99,7 @@ class Jade{
           // check to see if GIST url
           if(url_or_gist_id.toLowerCase().includes("gist.github.com")){
               const url_data = url_or_gist_id.split("/")
-              url='https://api.github.com/gists/' + url_data[url_data.length-1] + "?" + new Date()
+              url='https://api.github.com/gists/' + url_data[url_data.length-1] + "?" + Date.now()
           }else{
               url=url_or_gist_id
           }
@@ -62,7 +107,7 @@ class Jade{
       }else{
           // this looks like a gist id.  we should probably check it
           // sometime.  for now, let's just assume it is
-          url = 'https://api.github.com/gists/' + url_or_gist_id + "?" + new Date()
+          url = 'https://api.github.com/gists/' + url_or_gist_id + "?" + Date.now()
       }
 
       // now we have the URL to process
@@ -233,17 +278,18 @@ class Jade{
       Jade.show_panel(panel_name)
   }
 
-  static async use(name){
+  static async use(name, module_name){
     // imports a gist using a name to find the gist ID
     if(!jade_imports[name]){
       // only import once
      //console.log(jade_settings.workbook)
-      const url = jade_settings.workbook.gist_name_server + name + "?a=4"
+      const url = jade_settings.workbook.gist_name_server + name// + "?a=4"
      //console.log("------------->",url)
       const response = await fetch(url)
       const gist_id = await response.text()
      //console.log(gist_id)
-      await Jade.load_gist(gist_id)
+      if(module_name===undefined){module_name=null}
+      await Jade.load_gist(gist_id, module_name)
       jade_imports[name]=gist_id
     }
   }
@@ -342,7 +388,7 @@ class Jade{
               jade_settings.workbook={
                 code_module_ids:[],
                 gist_name_server:"https://gns.jsvba.com/",
-                examples_gist_id:"904983747625c3fdc8dfa69e0aaa0f08",
+                examples_gist_id:"f8e5fc20cff0c19a27765e7ce5fe54fe",
                 styles:{
                   system:null,
                   none:"/*No Theme CSS Used*/",
@@ -792,7 +838,7 @@ class Jade{
       try{
         ace.edit(panel_name + "-content").focus()
       }catch(e){
-        ;console.log("could not access ace.  This is expected",e)
+        //;console.log("could not access ace.  This is expected",e)
       }
     }
   
@@ -961,7 +1007,7 @@ class Jade{
     const parsed_code=Jade.parse_code(code)
     if(!parsed_code.error){
       // only incorporate the code if it is free of syntax errors
-      Jade.incorporate_code(code)  
+      Jade.incorporate_code(code, module_name)  
     }
   
     
@@ -978,7 +1024,7 @@ class Jade{
    //console.log("about to autoexec")
     try{
      //console.log("in try")
-      auto_exec()
+      jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec()
     }catch(e){
      ;console.log("catch",e)
     }  
@@ -987,7 +1033,8 @@ class Jade{
 
   }
   static code_runner(script_name,panel_name){
-    //console.log(script_name,panel_name)
+    //console.log('panel_name',panel_name)
+    //console.log('script_name',script_name)
     if (tag(panel_name + "-content").dataset.edited==="true"){
       if(!Jade.update_editor_script(panel_name)){
         // Jade.update_editor_script returns false if there is a 
@@ -995,11 +1042,14 @@ class Jade{
         return
       }
     }
+    //console.log("panel_name", panel_name, this.panel_name_to_module_name(panel_name))
     
     if(script_name.includes("(excel)")){
-      setTimeout("Excel.run(" + script_name.split("(")[0] + ")", 0) //run the function
+      Excel.run(jade_modules[Jade.panel_name_to_module_name(panel_name)][script_name.split("(")[0]])
     }else{
-      setTimeout(script_name, 0) //run the function
+      //console.log("panel_name",panel_name)
+      //console.log("Jade.panel_name_to_module_name(panel_name)",Jade.panel_name_to_module_name(panel_name))
+      jade_modules[Jade.panel_name_to_module_name(panel_name)][script_name]()
     }
   }
   static init_output(){
@@ -1179,25 +1229,25 @@ class Jade{
           })
   
           elem.style.display = "block";
-          Jade.incorporate_code(Jade.show_example_html_script(id))
   
-          Jade.incorporate_code(data)
-          setup() // setup must be defined in the example
+          Jade.incorporate_code(data + "\n" + Jade.show_example_html_script(id),"jade_examples")
+          //jade_modules.add(setup)
+          jade_modules.jade_examples.setup() // setup must be defined in the example
           if(!Jade.is_visible(tag("page_" + id ))){
             tag("page_" + id ).scrollIntoView(false)
           }
         })
         .catch((error) => {
-         ;console.log(error);
+         ;console.error(error);
         })
     } else {
       if (elem.style.display === "block") {
         elem.style.display = "none";
       } else {
         elem.style.display = "block";
-        Jade.incorporate_code(Jade.show_example_html_script(id))
-        Jade.incorporate_code(ace.edit("editor" + id).getValue())
-        setup() // setup must be defined in the example
+        Jade.incorporate_code(ace.edit("editor" + id).getValue() + "\n" + Jade.show_example_html_script(id),"jade_examples")
+        //jade_modules.add(setup)
+        jade_modules.jade_examples.setup() // setup must be defined in the example
         if(!Jade.is_visible(tag("page_" + id ))){
           tag("page_" + id ).scrollIntoView(false)
         }
@@ -1227,9 +1277,8 @@ class Jade{
       return false
     }
   
-  
-    Jade.incorporate_code(Jade.show_example_html_script(id))
-    Jade.incorporate_code(code)
+    Jade.incorporate_code(code + "\n" +Jade.show_example_html_script(id), "jade_examples")
+
     
     return true
   }    
@@ -1246,9 +1295,6 @@ class Jade{
     //console.log("at Jade.update_editor_script", panel_name)
     // set the size of the editor in case there was a prior zoom
   
-    
-  
-  
     // get the code
     const editor=ace.edit(panel_name + "-content")
     const code = editor.getValue();
@@ -1264,7 +1310,7 @@ class Jade{
   
     // show_html is defined differntly for modules than for examples
     // we need to be sure it is defined correctly for modules, so we set it here
-    Jade.incorporate_code('function show_html(html){open_canvas("html", html)}')
+  //Jade.incorporate_code('function show_html(html){open_canvas("html", html)}')
   
   
     //Check for syntax errors
@@ -1279,19 +1325,56 @@ class Jade{
     }
     
     // load the user's code into the browser
-    Jade.incorporate_code(code)
-  
+    Jade.incorporate_code(code+ '\nfunction show_html(html){Jade.open_canvas("html", html)}' ,Jade.panel_name_to_module_name(panel_name))
+
     // put the function names in the function dropdown
     Jade.load_function_names_select(parsed_code, panel_name)
     
     return true
   }
-  static incorporate_code(code){
+  static incorporate_code(code, module_name_in){
     // It turns out that the script block does not need to persist in the HTML
     // once the script block is loaded, the JS is parsed and not again referenced.
     // So, we create a script block, append it to the document body, then remove.
+    let new_code=code
+    if(module_name_in){
+      // a module_name is supplied, put this in Jade Modules
+      const module_name=module_name_in.toLowerCase()
+      const parsed_code = Jade.parse_code(code)
+      const function_names=[]
+      //console.log("parsed code", parsed_code)
+      for(const element of parsed_code.body){
+        if(element.type==="FunctionDeclaration"){
+          if(element.id && element.id.name){
+          //console.log("Found:",element.id.name)
+            function_names.push(element.id.name)
+          }
+        }else if(element.type==="VariableDeclaration" && element.declarations[0] && element.declarations[0].init&&element.declarations[0].init.type.includes("FunctionExpression")){
+          if(element.declarations[0].id && element.declarations[0].id.name){
+            // this is a named function
+          //console.log("Found:",element.declarations[0].id.name)
+            function_names.push(element.declarations[0].id.name)
+          }
+        }
+      } 
+      //console.log("module_name",module_name)
+      //console.log("function_names",function_names)
+      //console.log("=====================================================")
+      //console.log("====================================================")
+      //console.log("=====================================================")
+      //console.log(code)
+      //console.log("=====================================================")
+      //console.log("====================================================")
+      //console.log("=====================================================")
+
+
+      new_code = `var JADE_USER_CODE_MASTER = function (){${code}
+        ;jade_modules.add('${module_name}',${function_names})
+      }();`
+    }
+     
     const script = document.createElement("script");
-    script.innerHTML = code
+    script.innerHTML = new_code
     document.body.appendChild(script);
     document.body.lastChild.remove()
   }
@@ -1395,7 +1478,7 @@ class Jade{
           // this is a named function
           if(element.params.length===0){
             //there are no params. it is callable
-            option_value=element.id.name + "()"
+            option_value=element.id.name// + "()"
           } else if(element.params.length===1){
             // there is one param.  
             if(element.async){
@@ -1409,6 +1492,29 @@ class Jade{
             const option = document.createElement("option")
             if(option_value===selected_script){option.selected='selected'}
             option.text = element.id.name
+            option.value = option_value
+            selectElement.add(option)    
+          } 
+        }
+      }else if(element.type==="VariableDeclaration" && element.declarations[0] && element.declarations[0].init&&element.declarations[0].init.type.includes("FunctionExpression")){
+        if(element.declarations[0].id && element.declarations[0].id.name){
+          // this is a named function
+          if(element.declarations[0].init.params.length===0){
+            //there are no params. it is callable
+            option_value=element.declarations[0].id.name// + "()"
+          } else if(element.declarations[0].init.params.length===1){
+            // there is one param.  
+            if(element.declarations[0].init.params.length.async){
+              if(("excel ctx context").includes(element.declarations[0].init.params[0].name)){
+                // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
+                option_value = element.declarations[0].id.name + "(excel)"
+              }
+            }
+          }  
+          if(option_value){ // this is a function we can run directly
+            const option = document.createElement("option")
+            if(option_value===selected_script){option.selected='selected'}
+            option.text = element.declarations[0].id.name
             option.value = option_value
             selectElement.add(option)    
           } 
@@ -1464,6 +1570,29 @@ class Jade{
     let panel_label = panel_name.replace("panel_","")
     panel_label=panel_label.split("_").join(" ") 
     return panel_label.toTitleCase()
+  }
+  static panel_name_to_module_name(panel_name){
+    // this is the name used to refer to modules from other modules
+    const data=panel_name.substr(6, panel_name.length-13)
+    //console.log("data in panel_name_to_module_name",data)
+    return data
+  }
+  static file_name_to_module_name(file_name){
+    // this is the name used to refer to modules from other modules
+    //console.log("a")
+
+    let new_name=file_name.toLowerCase()
+    //console.log("b")
+    if(new_name.slice(-3)===".js"){
+      //console.log(2)
+      new_name = new_name.slice(0,new_name.length-3)
+    }
+    //console.log(3)
+    new_name=new_name.split(" ").join("_")
+    //console.log(4)
+    new_name=new_name.split(".").join("_")
+    //console.log(5)
+    return new_name
   }
   static select_page(){
    //console.log("panel name",window.event.target.value)
