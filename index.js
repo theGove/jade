@@ -829,7 +829,22 @@ class Jade{
         jade_panel_stack.push(panel)
       }else{
         //console.log(" hiding", panel)
-        tag(panel).style.display="none"  
+        if(panel==="panel_examples"){
+          if(tag(panel).style.display!=="none"){  
+            // close and destroy examples interface so we don't have conflicts in ID if hte example gets used
+            for(const elem of document.getElementsByClassName("e-canvas")){
+              // clear all example canvases
+              elem.innerHTML=""
+            }
+            for(const elem of document.getElementsByClassName("e-page")){
+              // hide all editors
+              elem.style.display = "none"
+              
+            }
+            
+          }
+        }
+        tag(panel).style.display="none"
       }
     }
   
@@ -1141,7 +1156,7 @@ class Jade{
           // there is a block comment.  assume it is a descriptions
           html.push(temp.split("*/")[0].split("/*")[1])  
         }
-        html.push(`</p><div id="page${sequence*100+example_number}"></div>`)
+        html.push(`</p><div class="e-page" id="page${sequence*100+example_number}"></div>`)
       }
       tag(gist_id).innerHTML = html.join("");
   
@@ -1170,7 +1185,7 @@ class Jade{
           tag("loading-image").remove()
           let div = document.createElement("div");
           div.id="example" + id + "_html"
-          //div.innerHTML = gist.template.content;
+          div.className = "e-canvas";
           div.style.marginBottom = "1rem";
           elem.appendChild(div);
           let box_height = (lines*22+17)// the size neede to show the whole example
