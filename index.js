@@ -8,7 +8,6 @@ const jade_panel_stack=['panel_home']
 const jade_imports={}// used to keep track of which modules have been imported so we don't try to import twice
 const jade_public={}
 const jade_modules = {
-//  functions: {},
   add(mod,...arr){
     //console.log("at jade_modules.add")
     if(!this[mod]){this[mod]={}}
@@ -16,7 +15,7 @@ const jade_modules = {
     //console.log("mod",mod)
       for(const func of arr){
          //console.log("func",func)
-          this[mod][func.name] = func
+         this[mod][func.name] = func
       }
   }
 }
@@ -754,6 +753,7 @@ class Jade{
             if(element.type==="FunctionDeclaration"){
               if(element.id && element.id.name){
                 // this is a named function
+                //console.log("found", element)
                 if(element.params.length===0){
                   //there are no params. it is callable
                   call_stmt=element.id.name + "()"
@@ -762,19 +762,21 @@ class Jade{
                   if(element.async){
                     if(("excel ctx context").includes(element.params[0].name)){
                       // this is an async function with a single parameter named excel, ctx or context.  Run by passing context
-                      call_stmt = "Excel.run(" + element.id.name + ")"
+                      call_stmt = `Excel.run(jade_modules.${Jade.panel_name_to_module_name(code_panel)}.${element.id.name})`
                     }
                   }
                 }  
                 if(call_stmt){ // this is a function we can run directly
                   // check for comment
-                  const function_text = window[ element.id.name]+''
-                //console.log(function_text)
+                  const function_text = jade_modules[Jade.panel_name_to_module_name(code_panel)][element.id.name]+''
+                  //const function_text = window[element.id.name]+''
+                  //console.log(function_text)
       
       
-                  if(function_text.includes("Jade.listing:")){ // this is a function we can run directly and it as the comment
-                    //console.log("found a comment", func)
-                    const comment = function_text.split("Jade.listing:")[1].split("*/")[0]
+                  if(function_text.toLowerCase().includes("jade.listing:")){ // this is a function we can run directly and it as the comment
+                    const start = function_text.toLowerCase().indexOf("jade.listing:")+13
+                    const num_chars =  function_text.toLowerCase().split("jade.listing:")[1].split("*/")[0].length
+                    const comment = function_text.substring(start, start+num_chars)
                     try{
                       const comment_json=JSON.parse(comment)
                       html.push('<li onclick="'+call_stmt+'" style="cursor:pointer"><b>'+comment_json.name+'</b>: '+comment_json.description+'</li>')
@@ -873,7 +875,7 @@ class Jade{
    //console.log("jade_settings", jade_settings)
     let options = jade_settings.user.ace_options
   
- //console.log(1)
+    
     // not currently handling options at the editor level, so this block is diabled
     // if(options_in){// default options for the editor
     //   options=options_in
@@ -1012,7 +1014,12 @@ class Jade{
           }
         }
       })
-  
+
+      //Now that we have loaded this code editor, try to run it's autoec
+      if(jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec){
+         // if this module has an autoexec, let's run it
+         jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec()
+      }
     });
   
     
@@ -1034,15 +1041,18 @@ class Jade{
       tag(panel_name + "_function-names").value=mod_settings.func
   
     }
-  
-    // AutoExecutable function
-   //console.log("about to autoexec")
-    try{
-     //console.log("in try")
-      jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec()
-    }catch(e){
-     ;console.log("catch",e)
-    }  
+ 
+  // now running auto exec when teh codeitor loads  
+  //   // AutoExecutable function
+  //  console.log("about to autoexec")
+  //   try{
+  //    console.log("in try", Jade.panel_name_to_module_name(panel_name))
+  //     //jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec()
+  //     console.log("after autoexec", jade_modules, JSON.stringify(jade_modules))
+  //     jade_modules.code.auto_exec()
+  //   }catch(e){
+  //    ;console.log("catch",e)
+  //   }  
 
 
 
