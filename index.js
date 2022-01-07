@@ -44,7 +44,7 @@ class Jade{
   //console.log("gisting", gist_id)
     try{
         
-      const response = await fetch(`https://api.github.com/gists/${gist_id}?${new Date()}`)
+      const response = await fetch(`https://api.github.com/gists/${gist_id}?${Date.now()}`)
       const data = await response.json()
       try{
         for(const file of Object.values(data.files)){
@@ -52,11 +52,13 @@ class Jade{
             await Jade.incorporate_code(file.content)
             try{
               auto_exec()
+              auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
             }catch(e){
-              console.error("Error running auto_exec()",e)
+              if(e.name!=="ReferenceError"){
+              console.error("Error running auto_exec()",e.name)
+              }
             }
             //Jade.incorporate_code("auto_exec=null")
-            auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
           }else if(!module_name){
             const module_name=Jade.file_name_to_module_name(file.filename)
             await Jade.incorporate_code(file.content, module_name)
@@ -282,7 +284,7 @@ class Jade{
     if(!jade_imports[name]){
       // only import once
      //console.log(jade_settings.workbook)
-      const url = jade_settings.workbook.gist_name_server + name// + "?a=4"
+      const url = jade_settings.workbook.gist_name_server + name + "?a=6"
      //console.log("------------->",url)
       const response = await fetch(url)
       const gist_id = await response.text()
