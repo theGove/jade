@@ -86,6 +86,58 @@ class Jade{
      ;console.error("Error fetching gist", e)
     }
   }
+
+  static async load_js(url, module_name){
+    // if module_name is null, load at global scope
+    // if module_name is specified, use that name as the module name
+    // otherwise, use the filename from the gist as the module name
+    
+  
+    //console.log("gisting", gist_id)
+      try{
+          
+        const response = await fetch(`${url}?${Date.now()}`)
+        const code = await response.text()
+        try{
+          if(module_name===null){
+            await Jade.incorporate_code(code)
+            try{
+              auto_exec()
+              auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
+            }catch(e){
+              if(e.name!=="ReferenceError"){
+              console.error("Error running auto_exec()",e.name)
+              }
+            }
+            //Jade.incorporate_code("auto_exec=null")
+          }else if(!module_name){
+            const module_name=Jade.file_name_to_module_name(url.substring(url.lastIndexOf('/')+1))
+            await Jade.incorporate_code(code, module_name)
+            try{
+              jade_modules[module_name].auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+          }else{
+            //console.log("module_name", module_name)
+            //console.log("file.content", file.content)
+            await Jade.incorporate_code(code, module_name)
+            try{
+              jade_modules[module_name].auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+          }
+          
+        }catch(e){
+          ;console.error("Error loading gist",e)
+        }
+        
+      }catch(e){
+       ;console.error("Error fetching gist", e)
+      }
+    }
+  
   static async import_code_module(url_or_gist_id){
       jade_settings.workbook.module_to_import=url_or_gist_id
      //console.log("at import code mod", jade_settings.workbook)
@@ -143,10 +195,10 @@ class Jade{
           // check to see if there is a comment that specifies a module name
           //
           let name = null
-          if(data.includes("ace.module:")){ 
+          if(data.includes("jade.module:")){ 
             try{
                //console.log("found ace lable")
-              name = JSON.parse(data.split("ace.module:")[1].split("*/")[0]).name
+              name = JSON.parse(data.split("jade.module:")[1].split("*/")[0]).name
             }catch(e){
                //console.log("ace label invalid")
               const url_data=url.split("/")
@@ -284,7 +336,7 @@ class Jade{
     if(!jade_imports[name]){
       // only import once
      //console.log(jade_settings.workbook)
-      const url = jade_settings.workbook.gist_name_server + name + "?a=6"
+      const url = jade_settings.workbook.gist_name_server + name + "?a=8"
      //console.log("------------->",url)
       const response = await fetch(url)
       const gist_id = await response.text()
@@ -430,7 +482,13 @@ class Jade{
  //console.log("about ot load")
   if(jade_settings.workbook.load_gist_id){
    //console.log("in if")
-    Jade.load_gist(jade_settings.workbook.load_gist_id)
+    if(jade_settings.workbook.load_gist_id.substr(0,4).toLowerCase()==="http"){
+      // must be a javascript file
+      Jade.load_js(jade_settings.workbook.load_gist_id)
+    }else{
+      // must be a gistid
+      Jade.load_gist(jade_settings.workbook.load_gist_id)
+    }
     
   }
   
