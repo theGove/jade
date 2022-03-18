@@ -130,11 +130,11 @@ class Jade{
           }
           
         }catch(e){
-          ;console.error("Error loading gist",e)
+          ;console.error("Error loading JS",e)
         }
         
       }catch(e){
-       ;console.error("Error fetching gist", e)
+       ;console.error("Error fetching JS", e)
       }
     }
   
@@ -1353,6 +1353,7 @@ class Jade{
     //console.log("script" + id);
     const editor=ace.edit("editor" + id)
     const code = editor.getValue()
+    console.log(code)
     const parsed_code=Jade.parse_code(code)
   
     if(parsed_code.error){
@@ -1361,8 +1362,10 @@ class Jade{
       editor.focus()
       return false
     }
-  
+    console.log(1)
     Jade.incorporate_code(code + "\n" +Jade.show_example_html_script(id), "jade_examples")
+    
+    console.log(2)
 
     
     return true
@@ -1426,8 +1429,11 @@ class Jade{
       // a module_name is supplied, put this in Jade Modules
       const module_name=module_name_in.toLowerCase()
       const parsed_code = Jade.parse_code(code)
+      if(parsed_code.error){
+        ;console.error("Error in",module_name_in, parsed_code)
+        return
+      }
       const function_names=[]
-      //console.log("parsed code", parsed_code)
       for(const element of parsed_code.body){
         if(element.type==="FunctionDeclaration"){
           if(element.id && element.id.name){
@@ -1556,6 +1562,7 @@ class Jade{
        selectElement.remove(0);
     }
   
+
     for(const element of parsed_code.body){
       let option_value = null
       if(element.type==="FunctionDeclaration"){
