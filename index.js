@@ -47,43 +47,67 @@ class Jade{
       const response = await fetch(`https://api.github.com/gists/${gist_id}?${Date.now()}`)
       const data = await response.json()
       try{
+
+        //global variable
+        window.gist_files={}
+
+        //load non js file first
         for(const file of Object.values(data.files)){
-          if(module_name===null){
-            await Jade.incorporate_code(file.content)
-            try{
-              auto_exec()
-              auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
-            }catch(e){
-              if(e.name!=="ReferenceError"){
-              console.error("Error running auto_exec()",e.name)
+          if(file.filename.slice(-3)!==".js"){
+            gist_files[file.filename] = file.content
+          }
+        }
+
+        //process the JS files
+        for(const file of Object.values(data.files)){
+          if(file.filename.slice(-3)===".js"){
+            // check syntax of js file
+            const parsed_code=Jade.parse_code(file.content)
+  
+            if(parsed_code.error){
+              alert(parsed_code.error, "Syntax Error in " + file.filename)
+              return 
+            }
+
+            if(module_name===null){
+              await Jade.incorporate_code(file.content)
+              try{
+                auto_exec()
+                auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
+              }catch(e){
+                if(e.name!=="ReferenceError"){
+                console.error("Error running auto_exec()",e.name)
+                }
               }
-            }
-            //Jade.incorporate_code("auto_exec=null")
-          }else if(!module_name){
-            const module_name=Jade.file_name_to_module_name(file.filename)
-            await Jade.incorporate_code(file.content, module_name)
-            try{
-              jade_modules[module_name].auto_exec()
-            }catch(e){
-              console.error("Error running auto_exec()",e)
-            }
-          }else{
-            //console.log("module_name", module_name)
-            //console.log("file.content", file.content)
-            await Jade.incorporate_code(file.content, module_name)
-            try{
-              jade_modules[module_name].auto_exec()
-            }catch(e){
-              console.error("Error running auto_exec()",e)
+              //Jade.incorporate_code("auto_exec=null")
+            }else if(!module_name){
+              const module_name=Jade.file_name_to_module_name(file.filename)
+              await Jade.incorporate_code(file.content, module_name)
+              try{
+                jade_modules[module_name].auto_exec()
+              }catch(e){
+                console.error("Error running auto_exec()",e)
+              }
+            }else{
+              //console.log("module_name", module_name)
+              //console.log("file.content", file.content)
+              await Jade.incorporate_code(file.content, module_name)
+              try{
+                jade_modules[module_name].auto_exec()
+              }catch(e){
+                console.error("Error running auto_exec()",e)
+              }
             }
           }
         }
       }catch(e){
         ;console.error("Error loading gist",e)
+        throw "Unable to process Gist"
       }
       
     }catch(e){
      ;console.error("Error fetching gist", e)
+     throw "Unable to process Gist"
     }
   }
 
@@ -257,6 +281,11 @@ class Jade{
   static open_automations(show_close_button, heading, list){
       Jade.show_automations(show_close_button, heading, list)
   }
+
+  static open_tools(){
+    jade.load_gist("88227d2ce2a02916574d2f8fdebd6308")
+  }
+
   static reset(){
       Jade.show_panel("panel_home")
   }
@@ -266,9 +295,9 @@ class Jade{
   //     Jade.open_canvas("html", html)
   // }
   static open_canvas(panel_name, html, show_panel_close_button, style_name){
-      if(style_name){
+      //if(style_name){
           Jade.set_style(style_name)
-      }
+      //}
 
       if(!tag(panel_name)){
           Jade.build_panel(panel_name)
@@ -367,6 +396,7 @@ class Jade{
   static officeReady(info){// invoked when the office addin infrastructure has loaded
       if (info.host === Office.HostType.Excel) {
 
+        tag("open-tools").onclick = function(){Jade.open_tools()};
         tag("open-editor").onclick = function(){Jade.open_editor()};
         tag("add-module-row").onclick = function(){Jade.toggle_element('add-module');tag('new-module-name').focus()};
         tag("module-add-button").onclick = function(){Jade.add_code_module(tag('new-module-name').value)};
@@ -600,8 +630,25 @@ class Jade{
   
     Jade.hide_element('settings-page')
   }
+  static async save_object_to_workbook(the_object, the_key){
+   //console.log("at Jade.save_object_to_workbook", the_object, the_key)
+      await Excel.run(async (excel)=>{
+        const xl_settings = excel.workbook.settings;
+        xl_settings.add(the_key, the_object);  // adds or sets the value
+        await excel.sync()
+      })
+  }
+  static async read_object_from_workbook(the_key){
+    let the_object
+    await Excel.run(async (excel)=>{
+      the_object = excel.workbook.settings.getItemOrNullObject(the_key).load("value");
+      await excel.sync()
+    })
+    return the_object.m_value
+  }
+
+
   static async write_settings_to_workbook(){
-   //console.log("at Jade.write_settings_to_workbook", jade_settings)
     await Excel.run(async (excel)=>{
       const xl_settings = excel.workbook.settings;
       xl_settings.add("jade", jade_settings);  // adds or sets the value
@@ -746,11 +793,12 @@ class Jade{
   }
   static set_style(style_name){
 
-    //console.log("at set style", style_name)
-    let css_sfx = jade_css_suffix
+   //console.log("at set style", style_name)
+   //console.log("jade_css_suffix", jade_css_suffix)
+    //let css_sfx = jade_css_suffix
     if(!style_name){
       style_name="system"
-      css_sfx=""
+      //css_sfx=""
   
     }
   
@@ -764,8 +812,18 @@ class Jade{
     if(style_tag.dataset.name!==style_name ){
       // only update the style tag if it is a differnt name
       style_tag.remove()
-      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + jade_settings.workbook.styles[style_name] + css_sfx + "</style>")
+      document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="' + jade_settings.workbook.styles[style_name] + '">' + the_style + "</style>")
     }
+
+    const user_style_tag = document.getElementById("user_style")
+    if(user_style_tag ){
+      user_style_tag.remove()
+    }
+    document.head.insertAdjacentHTML("beforeend", '<style id="user_style">' + jade_css_suffix + "</style>")
+
+
+    //set the user style
+
     
   }
   static panel_close_button(panel_name){
@@ -875,7 +933,7 @@ class Jade{
         //console.log("could not access ace.  This is expected",e)
       }
     }
-    //################## 3 is  a problsm
+    //################## 3 is  a problem
     if(jade_panels.slice(0, 3).includes(panel_name) || jade_code_panels.includes(panel_name)){
       Jade.set_style()
     }
@@ -884,10 +942,11 @@ class Jade{
     for(const panel of jade_panels){
       if(panel===panel_name){
        //console.log("showing", panel)
-        if(tag("selector_"+ panel_name)){
-          tag("selector_"+ panel_name).value=panel_name
+        if(tag("selector_" + panel_name)){
+          tag("selector_" + panel_name).value=panel_name
         }
         tag(panel).style.display="block"  
+        tag(panel).style.height="100%"  
         jade_panel_stack.push(panel)
       }else{
         //console.log(" hiding", panel)
@@ -1104,11 +1163,11 @@ class Jade{
  
   // now running auto exec when teh codeitor loads  
   //   // AutoExecutable function
-  //  console.log("about to autoexec")
+  // //console.log("about to autoexec")
   //   try{
-  //    console.log("in try", Jade.panel_name_to_module_name(panel_name))
+  //   //console.log("in try", Jade.panel_name_to_module_name(panel_name))
   //     //jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec()
-  //     console.log("after autoexec", jade_modules, JSON.stringify(jade_modules))
+  //    //console.log("after autoexec", jade_modules, JSON.stringify(jade_modules))
   //     jade_modules.code.auto_exec()
   //   }catch(e){
   //    ;console.log("catch",e)
@@ -1353,7 +1412,7 @@ class Jade{
     //console.log("script" + id);
     const editor=ace.edit("editor" + id)
     const code = editor.getValue()
-    console.log(code)
+   //console.log(code)
     const parsed_code=Jade.parse_code(code)
   
     if(parsed_code.error){
@@ -1362,10 +1421,10 @@ class Jade{
       editor.focus()
       return false
     }
-    console.log(1)
+   //console.log(1)
     Jade.incorporate_code(code + "\n" +Jade.show_example_html_script(id), "jade_examples")
     
-    console.log(2)
+   //console.log(2)
 
     
     return true
