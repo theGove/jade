@@ -33,20 +33,87 @@ class Jade{
 
   static async load_gist(gist_id, module_name){
   // We can use gist as repository for the code then either
-  // consume it or import it.  Gists have multiple files
-  // that become modules in jsvba
+  // consume it or import it.  Gists have multiple files.
+  // .js files become modules in jsvba
+  // other file types are stored in window.gist_files object
+  // using thier filename as the key
 
   // if module_name is null, load at global scope
   // if module_name is specified, use that name as the module name
   // otherwise, use the filename from the gist as the module name
   
+  
 
   //console.log("gisting", gist_id)
     try{
-        
-      const response = await fetch(`https://api.github.com/gists/${gist_id}?${Date.now()}`)
-      const data = await response.json()
-      try{
+      console.log("gist_id",gist_id)  
+
+      //first, check to see if we have a cached version of the gist   
+      let data = await jade.read_object_from_workbook("gist:" + gist_id)
+      console.log("gist_cache",data)
+      
+      let cached_gist_current=false // a variable to tell us if we need to fetch the gist
+
+      if(Object.keys(data).length > 0){ 
+        // there is a cached version of this gist, let's check to see if it is current
+        console.log("----> we have a cached version of gist")
+
+        const options = {
+          method: "GET",
+          headers: new Headers({
+            'If-None-Match': data.etag
+          })
+        };
+        console.log("opetions", options)
+        const response = await fetch(`https://api.github.com/gists/${gist_id}`,options)  
+        if(response.status===304){
+          // the cached gist is identical to the one on the server.  We already have it.
+          cached_gist_current = true
+          console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+          console.log("----> using cached version of gist")
+        }
+      }else{
+        console.log("----> no cached version of gist")
+      }
+
+      if(!cached_gist_current){
+        console.log("----> fetching new version of gist")
+        // need to get a fresh copy of the gist, either we have no copy, or our copy is outdated
+        const response = await fetch(`https://api.github.com/gists/${gist_id}?${Date.now()}`)
+        //console.log("load gist response", response)
+        // console.log("etag", response.headers.get("etag"))
+        // console.log("last_modified", response.headers.get("last-modified"))
+        // console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
+        console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+        // console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
+        data = await response.json()
+
+        if(data.files){
+          // store the gist file so a subsequent request will not need to ask for it again
+          // becuase we make an initial call using if-none-match header, we can know if the
+          // content has changed without counting agains the request limits, so we can always
+          // the most recent version of the gist.
+          jade.save_object_to_workbook({// no need to await because we are not waiting on it
+            etag:response.headers.get("etag"),
+            files:data.files
+            }, 
+            "gist:" + gist_id
+          )  
+        }else{
+          console.error("Gist contains no files",data)
+          console.log("etag", response.headers.get("etag"))
+          console.log("last_modified", response.headers.get("last-modified"))
+          console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
+          console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+          console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
+          return
+        }
+
+      }
+
+
+      try{// now process the gist
+
 
         //global variable
         window.gist_files={}
@@ -283,6 +350,7 @@ class Jade{
   }
 
   static open_tools(){
+    //gist id for jade tools (jet)
     jade.load_gist("88227d2ce2a02916574d2f8fdebd6308")
   }
 
@@ -644,6 +712,9 @@ class Jade{
       the_object = excel.workbook.settings.getItemOrNullObject(the_key).load("value");
       await excel.sync()
     })
+    if(!the_object.m_value){
+      return {}
+    }
     return the_object.m_value
   }
 
@@ -1247,8 +1318,16 @@ class Jade{
     }
   }
   static get_example_html(gist_id, sequence){
+    
+    let url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
+    if(gist_id="f8e5fc20cff0c19a27765e7ce5fe54fe"){
+      // the default gist, reader it from atlasquery's gist server
+      // we do this because the examples get loaded each time the addin
+      // renders.
 
-    const url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
+      url=`https://atlasquery.github.io/gist-server/${gist_id}.json`
+
+    }
     const gist_url=`https://gist.github.com/${gist_id}`
    //console.log("building examples",url)
     
