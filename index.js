@@ -84,7 +84,14 @@ class Jade{
         // console.log("etag", response.headers.get("etag"))
         // console.log("last_modified", response.headers.get("last-modified"))
         // console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
+        if(response.headers.get("x-ratelimit-remaining")===0){
+          // we are out of request capacity.
+          console.log("We are out of gist capacity")
+          // need to fall back to atals-query gist server on git hub
+        }
+
         console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+
         // console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
         data = await response.json()
 
@@ -114,18 +121,26 @@ class Jade{
 
       try{// now process the gist
 
-
         //global variable
-        window.gist_files={}
+        if(!window.gist_files){
+          window.gist_files={}
+        }
+        window.gist_files[gist_id]={}
 
         //load non js file first
         for(const file of Object.values(data.files)){
           if(file.filename.slice(-3)!==".js"){
-            gist_files[file.filename] = file.content
+            gist_files[gist_id][file.filename] = file.content
           }
         }
 
         //process the JS files
+        const fn_gist_id=`
+        function my_gist_id(){return "${gist_id}"}
+        function gist_files(file_name, gist_id="${gist_id}"){
+          return window.gist_files[gist_id][file_name]
+        }
+        ` // gets prepended to each js file so it knows its own gist ID
         for(const file of Object.values(data.files)){
           if(file.filename.slice(-3)===".js"){
             // check syntax of js file
@@ -137,7 +152,7 @@ class Jade{
             }
 
             if(module_name===null){
-              await Jade.incorporate_code(file.content)
+              await Jade.incorporate_code(fn_gist_id + file.content)
               try{
                 auto_exec()
                 auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
@@ -149,7 +164,7 @@ class Jade{
               //Jade.incorporate_code("auto_exec=null")
             }else if(!module_name){
               const module_name=Jade.file_name_to_module_name(file.filename)
-              await Jade.incorporate_code(file.content, module_name)
+              await Jade.incorporate_code(fn_gist_id + file.content, module_name)
               try{
                 jade_modules[module_name].auto_exec()
               }catch(e){
@@ -158,7 +173,7 @@ class Jade{
             }else{
               //console.log("module_name", module_name)
               //console.log("file.content", file.content)
-              await Jade.incorporate_code(file.content, module_name)
+              await Jade.incorporate_code(fn_gist_id + file.content, module_name)
               try{
                 jade_modules[module_name].auto_exec()
               }catch(e){
