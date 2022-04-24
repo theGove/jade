@@ -43,10 +43,12 @@ class Jade{
   // otherwise, use the filename from the gist as the module name
   
   
-
   //console.log("gisting", gist_id)
     try{
+      
       console.log("gist_id",gist_id)  
+      
+      const gist_limit_personal_access_token = localStorage.getItem('gist_limit_personal_access_token')
 
       //first, check to see if we have a cached version of the gist   
       let data = await jade.read_object_from_workbook("gist:" + gist_id)
@@ -56,16 +58,19 @@ class Jade{
 
       if(Object.keys(data).length > 0){ 
         // there is a cached version of this gist, let's check to see if it is current
-        console.log("----> we have a cached version of gist")
+        console.log("----> we have a cached version of gist:", data.etag)
+        const headers={'If-None-Match': data.etag }
+
+        if(gist_limit_personal_access_token){
+            headers.Authorization = "token " + gist_limit_personal_access_token
+        }
 
         const options = {
-          method: "GET",
-          headers: new Headers({
-            'If-None-Match': data.etag
-          })
+          method: "HEAD",
+          headers: headers
         };
-        console.log("opetions", options)
-        const response = await fetch(`https://api.github.com/gists/${gist_id}`,options)  
+        let response = await fetch(`https://api.github.com/gists/${gist_id}`,options)  
+
         if(response.status===304){
           // the cached gist is identical to the one on the server.  We already have it.
           cached_gist_current = true
@@ -76,21 +81,35 @@ class Jade{
         console.log("----> no cached version of gist")
       }
 
+      let response
       if(!cached_gist_current){
         console.log("----> fetching new version of gist")
         // need to get a fresh copy of the gist, either we have no copy, or our copy is outdated
-        const response = await fetch(`https://api.github.com/gists/${gist_id}?${Date.now()}`)
+        const options = {method: "GET"}
+
+        // if a gist_limit_personal_access_token has been specified in the local storage, use it for 
+        // purposes of increasing the rate limit
+        if(gist_limit_personal_access_token){
+          options.headers = {
+            'Authorization': "token " + gist_limit_personal_access_token
+          }
+        }
+
+        response = await fetch(`https://api.github.com/gists/${gist_id}`, options)
+
         //console.log("load gist response", response)
         // console.log("etag", response.headers.get("etag"))
         // console.log("last_modified", response.headers.get("last-modified"))
         // console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
+        console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
         if(response.headers.get("x-ratelimit-remaining")===0){
           // we are out of request capacity.
           console.log("We are out of gist capacity")
           // need to fall back to atals-query gist server on git hub
+          // to publish a gist to this gist-server, run publish <gist-id>
+          // from jsvba/gist-server  repo
+          response = await fetch(`https://atlasquery.github.io/gist-server/${gist_id}.json`)
         }
-
-        console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
 
         // console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
         data = await response.json()
@@ -100,8 +119,10 @@ class Jade{
           // becuase we make an initial call using if-none-match header, we can know if the
           // content has changed without counting agains the request limits, so we can always
           // the most recent version of the gist.
+
+          const etag=response.headers.get("etag").split("/")[1]
           jade.save_object_to_workbook({// no need to await because we are not waiting on it
-            etag:response.headers.get("etag"),
+            etag:etag,
             files:data.files
             }, 
             "gist:" + gist_id
