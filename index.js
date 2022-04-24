@@ -340,9 +340,21 @@ class Jade{
       }
       
   }
-  static set_css(user_css){
+  static set_css(user_css, style_tag_id="user_style"){
+
+    if(style_tag_id==="user_style"){
+      // only set the jade_css_suffix style_tag_id is not supplied
       jade_css_suffix=user_css
+    }
+
+      const user_style_tag = document.getElementById(style_tag_id)
+      if(user_style_tag ){
+        user_style_tag.remove()
+      }
+      document.head.insertAdjacentHTML("beforeend", `<style id="${style_tag_id}">`+ user_css + "</style>")
+  
   }
+
   static add_library(url){
       // adds a JS library to the head section of the HTML sheet
       const library = document.createElement('script');
@@ -872,7 +884,7 @@ class Jade{
       jade_settings.workbook.styles[style_name]=data
       if(integrate_now){
         document.getElementById("head_style").remove()
-        document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + jade_settings.workbook.styles[style_name] + jade_css_suffix + "</style>")
+        document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="'+style_name+'">' + jade_settings.workbook.styles[style_name] + "</style>")
       }
     }
     
@@ -900,13 +912,13 @@ class Jade{
       style_tag.remove()
       document.head.insertAdjacentHTML("beforeend", '<style id="head_style" data-name="' + jade_settings.workbook.styles[style_name] + '">' + the_style + "</style>")
     }
-
     const user_style_tag = document.getElementById("user_style")
     if(user_style_tag ){
       user_style_tag.remove()
     }
     document.head.insertAdjacentHTML("beforeend", '<style id="user_style">' + jade_css_suffix + "</style>")
 
+    
 
     //set the user style
 
