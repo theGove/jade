@@ -5,7 +5,7 @@ const jade_panels=['panel_home','panel_examples']
 const jade_panel_labels=["Home", "Examples", "Output"]
 const jade_code_panels=[]
 const jade_panel_stack=['panel_home']
-const jade_imports={}// used to keep track of which modules have been imported so we don't try to import twice
+const jade_imports={} // used to keep track of which modules have been imported so we don't try to import twice
 const jade_public={}
 const jade_modules = {
   add(mod,...arr){
@@ -69,7 +69,7 @@ class Jade{
           method: "HEAD",
           headers: headers
         };
-        let response = await fetch(`https://api.github.com/gists/${gist_id}`,options)  
+        let response = await fetch(`https://api.github.com/gists/${gist_id}?${Date.now()}`,options)  
 
         if(response.status===304){
           // the cached gist is identical to the one on the server.  We already have it.
@@ -98,9 +98,9 @@ class Jade{
         response = await fetch(`https://api.github.com/gists/${gist_id}`, options)
 
         //console.log("load gist response", response)
-        // console.log("etag", response.headers.get("etag"))
-        // console.log("last_modified", response.headers.get("last-modified"))
-        // console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
+        //console.log("etag", response.headers.get("etag"))
+        //console.log("last_modified", response.headers.get("last-modified"))
+        //console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
         console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
         if(response.headers.get("x-ratelimit-remaining")===0){
           // we are out of request capacity.
