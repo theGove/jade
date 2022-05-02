@@ -108,7 +108,7 @@ class Jade{
           // need to fall back to atals-query gist server on git hub
           // to publish a gist to this gist-server, run publish <gist-id>
           // from jsvba/gist-server  repo
-          response = await fetch(`https://atlasquery.github.io/gist-server/${gist_id}.json`)
+          response = await fetch(`https://jade-addin.github.io/gist-server/${gist_id}.json`)
         }
 
         // console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
@@ -140,78 +140,115 @@ class Jade{
       }
 
 
-      try{// now process the gist
-
-        //global variable
-        if(!window.gist_files){
-          window.gist_files={}
-        }
-        window.gist_files[gist_id]={}
-
-        //load non js file first
-        for(const file of Object.values(data.files)){
-          if(file.filename.slice(-3)!==".js"){
-            gist_files[gist_id][file.filename] = file.content
-          }
-        }
-
-        //process the JS files
-        const fn_gist_id=`
-        function my_gist_id(){return "${gist_id}"}
-        function gist_files(file_name, gist_id="${gist_id}"){
-          return window.gist_files[gist_id][file_name]
-        }
-        ` // gets prepended to each js file so it knows its own gist ID
-        for(const file of Object.values(data.files)){
-          if(file.filename.slice(-3)===".js"){
-            // check syntax of js file
-            const parsed_code=Jade.parse_code(file.content)
-  
-            if(parsed_code.error){
-              alert(parsed_code.error, "Syntax Error in " + file.filename)
-              return 
-            }
-
-            if(module_name===null){
-              await Jade.incorporate_code(fn_gist_id + file.content)
-              try{
-                auto_exec()
-                auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
-              }catch(e){
-                if(e.name!=="ReferenceError"){
-                console.error("Error running auto_exec()",e.name)
-                }
-              }
-              //Jade.incorporate_code("auto_exec=null")
-            }else if(!module_name){
-              const module_name=Jade.file_name_to_module_name(file.filename)
-              await Jade.incorporate_code(fn_gist_id + file.content, module_name)
-              try{
-                jade_modules[module_name].auto_exec()
-              }catch(e){
-                console.error("Error running auto_exec()",e)
-              }
-            }else{
-              //console.log("module_name", module_name)
-              //console.log("file.content", file.content)
-              await Jade.incorporate_code(fn_gist_id + file.content, module_name)
-              try{
-                jade_modules[module_name].auto_exec()
-              }catch(e){
-                console.error("Error running auto_exec()",e)
-              }
-            }
-          }
-        }
-      }catch(e){
-        ;console.error("Error loading gist",e)
-        throw "Unable to process Gist"
-      }
+      jade.integrate_gist(gist_id,data, module_name)  
       
     }catch(e){
      ;console.error("Error fetching gist", e)
      throw "Unable to process Gist"
     }
+  }
+
+  static async load_gist_from_local_server(gist_id, module_name, port=5500){
+    // behaves like load gist, but it pulls the data from the local "go live" server
+    // from vs code.  Open vs code from the folder containing the folder with the gist id
+    // the gist must have been cloned locally  
+
+    
+    try{
+      
+      console.log("=============================================================")  
+      console.log("at load_gist_from_local_server, gist_id:",gist_id)  
+      console.log("=============================================================")  
+
+      let response = await fetch(`http://localhost:5500/${gist_id}`)
+      let file_list = await response.text()
+      file_list = file_list.split('<ul id="files"')[1].split('<li><a href="')
+      file_list.shift();file_list.shift()
+      const data={files:{}}
+      for(let x=0;x<file_list.length;x++){
+        const file_name=file_list[x].split('/')[2].split('"')[0]
+        const response = await fetch(`http://localhost:5500/${gist_id}/${file_name}`)
+        data.files[file_name]={
+          filename:file_name,
+          content:await response.text()
+        }
+      }
+      jade.integrate_gist(gist_id,data, module_name)  
+    }catch(e){
+      ;console.error("Error fetching gist", e)
+      throw "Unable to process Gist"
+    }
+  }
+  
+  static async integrate_gist(gist_id, data, module_name){
+    try{// now process the gist
+
+      //global variable
+      if(!window.gist_files){
+        window.gist_files={}
+      }
+      window.gist_files[gist_id]={}
+
+      //load non js file first
+      for(const file of Object.values(data.files)){
+        if(file.filename.slice(-3)!==".js"){
+          gist_files[gist_id][file.filename] = file.content
+        }
+      }
+
+      //process the JS files
+      const fn_gist_id=`
+      function my_gist_id(){return "${gist_id}"}
+      function gist_files(file_name, gist_id="${gist_id}"){
+        return window.gist_files[gist_id][file_name]
+      }
+      ` // gets prepended to each js file so it knows its own gist ID
+      for(const file of Object.values(data.files)){
+        if(file.filename.slice(-3)===".js"){
+          // check syntax of js file
+          const parsed_code=Jade.parse_code(file.content)
+
+          if(parsed_code.error){
+            alert(parsed_code.error, "Syntax Error in " + file.filename)
+            return 
+          }
+
+          if(module_name===null){
+            await Jade.incorporate_code(file.content + fn_gist_id)
+            try{
+              auto_exec()
+              auto_exec=null// in case a later module gets loaded in the global scope, don't run an old auto_exec
+            }catch(e){
+              if(e.name!=="ReferenceError"){
+              console.error("Error running auto_exec()",e.name)
+              }
+            }
+            //Jade.incorporate_code("auto_exec=null")
+          }else if(!module_name){
+            const module_name=Jade.file_name_to_module_name(file.filename)
+            await Jade.incorporate_code(file.content + fn_gist_id, module_name)
+            try{
+              jade_modules[module_name].auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+          }else{
+            //console.log("module_name", module_name)
+            //console.log("file.content", file.content)
+            await Jade.incorporate_code(file.content + fn_gist_id, module_name)
+            try{
+              jade_modules[module_name].auto_exec()
+            }catch(e){
+              console.error("Error running auto_exec()",e)
+            }
+          }
+        }
+      }
+    }catch(e){
+      ;console.error("Error loading gist",e)
+      throw "Unable to process Gist"
+    }
+
   }
 
   static async load_js(url, module_name){
@@ -399,7 +436,7 @@ class Jade{
 
   static open_tools(){
     //gist id for jade tools (jet)
-    jade.load_gist("88227d2ce2a02916574d2f8fdebd6308")
+    jade.load_gist("0ad9cb51c9c7cdd79500a8e51ee85a18")
   }
 
   static reset(){
@@ -1221,7 +1258,6 @@ class Jade{
               break//exit the loop
             }
           }
-          
         }
       })
   
@@ -1369,11 +1405,11 @@ class Jade{
     
     let url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
     if(gist_id="f8e5fc20cff0c19a27765e7ce5fe54fe"){
-      // the default gist, reader it from atlasquery's gist server
+      // the default gist, read it from jade-addin's gist server
       // we do this because the examples get loaded each time the addin
       // renders.
-
-      url=`https://atlasquery.github.io/gist-server/${gist_id}.json`
+      
+      url=`https://jade-addin.github.io/gist-server/${gist_id}.json`
 
     }
     const gist_url=`https://gist.github.com/${gist_id}`
