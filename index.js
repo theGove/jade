@@ -1409,7 +1409,7 @@ class Jade{
       // we do this because the examples get loaded each time the addin
       // renders.
       
-      url=`https://jade-addin.github.io/gist-server/${gist_id}.json`
+      url=`https://jade-addin.github.io/gist-server/${gist_id}`
 
     }
     const gist_url=`https://gist.github.com/${gist_id}`
