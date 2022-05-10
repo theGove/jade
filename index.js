@@ -510,6 +510,10 @@ class Jade{
   static open_examples(){
       const panel_name="panel_examples"
       Jade.set_style()
+      if(!tag("panel_examples").dataset.initialized){
+        Jade.fill_examples()
+        tag("panel_examples").dataset.initialized=true
+      }
       Jade.show_panel(panel_name)
   }
 
@@ -1367,7 +1371,7 @@ class Jade{
   }
   static init_examples(){
     Jade.build_panel("panel_examples", false)
-    Jade.fill_examples()
+    //Jade.fill_examples()  // now it is filled when the examples are first shown.
   }  
   static fill_examples(gist_ids){
     //gist_ids is a comma delimited list of gist ids that hold examples
@@ -1406,8 +1410,7 @@ class Jade{
     let url=`https://api.github.com/gists/${gist_id}?${Date.now()}`
     if(gist_id="f8e5fc20cff0c19a27765e7ce5fe54fe"){
       // the default gist, read it from jade-addin's gist server
-      // we do this because the examples get loaded each time the addin
-      // renders.
+      // we do this because the examples get loaded very often.
       
       url=`https://jade-addin.github.io/gist-server/${gist_id}`
 
@@ -1419,13 +1422,13 @@ class Jade{
     fetch(url)
     .then((response) => response.text())
     .then((json_text) => {
-    // //console.log("json_text",json_text)
+    console.log("json_text",json_text)
       const data=JSON.parse(json_text)
   
       // now we have the data from the api call.  need to organize it--especially for order
       // make a list of objects with integers as keys so the order will be numerical
       const filenames={}
-        for(const filename of Object.keys(data.files)){
+      for(const filename of Object.keys(data.files)){
         filenames[parseFloat(filename.split("_").shift())] = filename
       }
       //console.log("filenames",filenames)
@@ -1445,19 +1448,105 @@ class Jade{
         temp=data.files[filenames[key]].content
 
         if(temp.includes("*/")){
-          // there is a block comment.  assume it is a descriptions
+          // there is a block comment.  assume it is a description
           html.push(temp.split("*/")[0].split("/*")[1])  
         }
-        html.push(`</p><div class="e-page" id="page${sequence*100+example_number}"></div>`)
+        html.push(`</p><div class="e-page hidden" id="page${sequence*100+example_number}"></div>`)
+        //${data.files[filenames[key]].content}//eeeeeeeeeeeeeeeeeee
       }
       tag(gist_id).innerHTML = html.join("");
-  
+      example_number=0
+      for(const key of Object.keys(filenames)){
+        example_number++
+        // now place the example html.  Originally, this code was written to bring in the html again when clicked
+        Jade.place_example(sequence*100+example_number,data.files[filenames[key]].content,data.files[filenames[key]].content.split(/\r\n|\r|\n/).length)
+      }
       return
   
     });
   
   
   }
+
+
+
+  static place_example(id,data,lines) {
+    const elem = tag("page" + id);
+    console.log("elem",elem)
+    let div = document.createElement("div");
+    div.id="example" + id + "_html"
+    div.className = "e-canvas";
+    div.style.marginBottom = "1rem";
+    elem.appendChild(div);
+    let box_height = (lines*22+17)// the size neede to show the whole example
+    if(box_height>window.innerHeight){
+      box_height=window.innerHeight-60
+    }
+    
+    const box = document.createElement("div");
+    box.id = "page_" + id;
+    box.style.width = "100%";
+    box.style.height = box_height+"px";
+    box.style.display = "inline-block";
+    box.style.position = "relative";
+
+
+    div = document.createElement("div");
+    div.id = "editor" + id;
+    div.innerHTML = data.toHtmlEntities()
+
+    box.appendChild(div);
+    elem.appendChild(box);
+    
+    
+    // setting up the editor in the example space
+    const scriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      script.onload = resolve;
+      script.onerror = reject;
+      script.async = true;
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
+    });
+
+    scriptPromise.then(() => {
+      const editor = ace.edit("editor" + id);
+      editor.on("blur", function () {
+        Jade.update_script(id);
+      });
+      editor.setTheme("ace/theme/tomorrow");
+      //editor.session.$worker.send("changeOptions", [{ asi: true }]);
+      editor.setOptions({fontSize: "14pt"});
+      editor.getSession().setUseWorker(false);
+      editor.session.setMode("ace/mode/javascript");
+      editor.commands.addCommand({  // toggle word wrap
+        name: "wrap",
+        bindKey: {win: "Alt-z", mac: "Alt-z"},
+        exec: function(editor) {            
+          if(editor.getOptions().wrap==="off"){
+            editor.setOptions({wrap: true})
+            globalThis=true
+          }else{
+            editor.setOptions({wrap: "off"})
+          }              
+        }
+      })
+    })
+
+    
+
+    Jade.incorporate_code(data + "\n" + Jade.show_example_html_script(id),"jade_examples")
+    //jade_modules.add(setup)
+    jade_modules.jade_examples.setup() // setup must be defined in the example
+    if(!Jade.is_visible(tag("page_" + id ))){
+      tag("page_" + id ).scrollIntoView(false)
+    }
+    return elem
+
+  }
+
+
+  
   static show_example(id, url, lines) {
     // place the code in an editable box for user to see and play with
     // these examples should be made in script lab to have the right format
@@ -1475,74 +1564,8 @@ class Jade{
           //const gist = jsyaml.load(data);
           //console.log(gist)
           tag("loading-image").remove()
-          let div = document.createElement("div");
-          div.id="example" + id + "_html"
-          div.className = "e-canvas";
-          div.style.marginBottom = "1rem";
-          elem.appendChild(div);
-          let box_height = (lines*22+17)// the size neede to show the whole example
-          if(box_height>window.innerHeight){
-            box_height=window.innerHeight-60
-          }
-          
-          const box = document.createElement("div");
-          box.id = "page_" + id;
-          box.style.width = "100%";
-          box.style.height = box_height+"px";
-          box.style.display = "inline-block";
-          box.style.position = "relative";
-
-  
-          div = document.createElement("div");
-          div.id = "editor" + id;
-          div.innerHTML = data.toHtmlEntities()
-  
-          box.appendChild(div);
-          elem.appendChild(box);
-          
-          
-          // setting up the editor in the example space
-          const scriptPromise = new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            document.body.appendChild(script);
-            script.onload = resolve;
-            script.onerror = reject;
-            script.async = true;
-            script.src = "https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.13/ace.js";
-          });
-  
-          scriptPromise.then(() => {
-            const editor = ace.edit("editor" + id);
-            editor.on("blur", function () {
-              Jade.update_script(id);
-            });
-            editor.setTheme("ace/theme/tomorrow");
-            //editor.session.$worker.send("changeOptions", [{ asi: true }]);
-            editor.setOptions({fontSize: "14pt"});
-            editor.getSession().setUseWorker(false);
-            editor.session.setMode("ace/mode/javascript");
-            editor.commands.addCommand({  // toggle word wrap
-              name: "wrap",
-              bindKey: {win: "Alt-z", mac: "Alt-z"},
-              exec: function(editor) {            
-                if(editor.getOptions().wrap==="off"){
-                  editor.setOptions({wrap: true})
-                  globalThis=true
-                }else{
-                  editor.setOptions({wrap: "off"})
-                }              
-              }
-            })
-          })
-  
+          const elem=this.place_example(id,data,lines) 
           elem.style.display = "block";
-  
-          Jade.incorporate_code(data + "\n" + Jade.show_example_html_script(id),"jade_examples")
-          //jade_modules.add(setup)
-          jade_modules.jade_examples.setup() // setup must be defined in the example
-          if(!Jade.is_visible(tag("page_" + id ))){
-            tag("page_" + id ).scrollIntoView(false)
-          }
         })
         .catch((error) => {
          ;console.error(error);
