@@ -46,19 +46,19 @@ class Jade{
   //console.log("gisting", gist_id)
     try{
       
-      console.log("gist_id",gist_id)  
+     //console.log("gist_id",gist_id)  
       
       const gist_limit_personal_access_token = localStorage.getItem('gist_limit_personal_access_token')
 
       //first, check to see if we have a cached version of the gist   
       let data = await jade.read_object_from_workbook("gist:" + gist_id)
-      console.log("gist_cache",data)
+     //console.log("gist_cache",data)
       
       let cached_gist_current=false // a variable to tell us if we need to fetch the gist
 
       if(Object.keys(data).length > 0){ 
         // there is a cached version of this gist, let's check to see if it is current
-        console.log("----> we have a cached version of gist:", data.etag)
+       //console.log("----> we have a cached version of gist:", data.etag)
         const headers={'If-None-Match': data.etag }
 
         if(gist_limit_personal_access_token){
@@ -74,16 +74,16 @@ class Jade{
         if(response.status===304){
           // the cached gist is identical to the one on the server.  We already have it.
           cached_gist_current = true
-          console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
-          console.log("----> using cached version of gist")
+         //console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+         //console.log("----> using cached version of gist")
         }
       }else{
-        console.log("----> no cached version of gist")
+       //console.log("----> no cached version of gist")
       }
 
       let response
       if(!cached_gist_current){
-        console.log("----> fetching new version of gist")
+       //console.log("----> fetching new version of gist")
         // need to get a fresh copy of the gist, either we have no copy, or our copy is outdated
         const options = {method: "GET"}
 
@@ -101,17 +101,17 @@ class Jade{
         //console.log("etag", response.headers.get("etag"))
         //console.log("last_modified", response.headers.get("last-modified"))
         //console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
-        console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+       //console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
         if(response.headers.get("x-ratelimit-remaining")===0){
           // we are out of request capacity.
-          console.log("We are out of gist capacity")
+         //console.log("We are out of gist capacity")
           // need to fall back to atals-query gist server on git hub
           // to publish a gist to this gist-server, run publish <gist-id>
           // from jsvba/gist-server  repo
           response = await fetch(`https://jade-addin.github.io/gist-server/${gist_id}.json`)
         }
 
-        // console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
+        ////console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
         data = await response.json()
 
         if(data.files){
@@ -129,11 +129,11 @@ class Jade{
           )  
         }else{
           console.error("Gist contains no files",data)
-          console.log("etag", response.headers.get("etag"))
-          console.log("last_modified", response.headers.get("last-modified"))
-          console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
-          console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
-          console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
+          ;console.log("etag", response.headers.get("etag"))
+          ;console.log("last_modified", response.headers.get("last-modified"))
+          ;console.log("x-ratelimit-limit", response.headers.get("x-ratelimit-limit"))
+          ;console.log("x-ratelimit-remaining", response.headers.get("x-ratelimit-remaining"))
+          ;console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
           return
         }
 
@@ -156,9 +156,9 @@ class Jade{
     
     try{
       
-      console.log("=============================================================")  
-      console.log("at load_gist_from_local_server, gist_id:",gist_id)  
-      console.log("=============================================================")  
+     //console.log("=============================================================")  
+     //console.log("at load_gist_from_local_server, gist_id:",gist_id)  
+     //console.log("=============================================================")  
 
       let response = await fetch(`http://localhost:5500/${gist_id}`)
       let file_list = await response.text()
@@ -1422,7 +1422,7 @@ class Jade{
     fetch(url)
     .then((response) => response.text())
     .then((json_text) => {
-    console.log("json_text",json_text)
+   //console.log("json_text",json_text)
       const data=JSON.parse(json_text)
   
       // now we have the data from the api call.  need to organize it--especially for order
@@ -1472,7 +1472,7 @@ class Jade{
 
   static place_example(id,data,lines) {
     const elem = tag("page" + id);
-    console.log("elem",elem)
+   //console.log("elem",elem)
     let div = document.createElement("div");
     div.id="example" + id + "_html"
     div.className = "e-canvas";
