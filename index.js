@@ -160,16 +160,14 @@ class Jade{
      //console.log("at load_gist_from_local_server, gist_id:",gist_id)  
      //console.log("=============================================================")  
 
-      let response = await fetch(`${url}/${gist_id}`)
-      let file_list = await response.text()
-      file_list = file_list.split('<ul id="files"')[1].split('<li><a href="')
-      file_list.shift();file_list.shift()
+     //let response = await fetch(`${url}/${gist_id}`)
+     let response = await fetch(`${url}/${gist_id}/manifest.json`)
+     let files = await response.json()
       const data={files:{}}
-      for(let x=0;x<file_list.length;x++){
-        const file_name=file_list[x].split('/')[2].split('"')[0]
-        const response = await fetch(`${url}/${gist_id}/${file_name}`)
-        data.files[file_name]={
-          filename:file_name,
+      for(const file of files){
+        const response = await fetch(`${url}/${gist_id}/${file}`)
+        data.files[file]={
+          filename:file,
           content:await response.text()
         }
       }
