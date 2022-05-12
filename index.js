@@ -148,7 +148,7 @@ class Jade{
     }
   }
 
-  static async load_gist_from_local_server(gist_id, module_name, port=5500){
+  static async load_gist_from_local_server(gist_id, module_name, url){
     // behaves like load gist, but it pulls the data from the local "go live" server
     // from vs code.  Open vs code from the folder containing the folder with the gist id
     // the gist must have been cloned locally  
@@ -160,14 +160,14 @@ class Jade{
      //console.log("at load_gist_from_local_server, gist_id:",gist_id)  
      //console.log("=============================================================")  
 
-      let response = await fetch(`http://localhost:5500/${gist_id}`)
+      let response = await fetch(`${url}/${gist_id}`)
       let file_list = await response.text()
       file_list = file_list.split('<ul id="files"')[1].split('<li><a href="')
       file_list.shift();file_list.shift()
       const data={files:{}}
       for(let x=0;x<file_list.length;x++){
         const file_name=file_list[x].split('/')[2].split('"')[0]
-        const response = await fetch(`http://localhost:5500/${gist_id}/${file_name}`)
+        const response = await fetch(`${url}/${gist_id}/${file_name}`)
         data.files[file_name]={
           filename:file_name,
           content:await response.text()
