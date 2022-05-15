@@ -2050,11 +2050,16 @@ function alert(data, heading){
   div.id='jade-alert'
   const header = document.createElement("div")
   header.className="jade-alert-header"  
-  header.innerHTML = heading + '<div class="jade-alert-close"><i class="fas fa-times" style="color:white;margin-right:.3rem;cursor:pointer" onclick="this.parentNode.parentNode.parentNode.remove()"></div>'
+  header.innerHTML = heading 
+
+  const close_button=document.createElement("div")
+  close_button.className="jade-alert-close"
+  close_button.innerHTML='<i class="fas fa-times" style="color:white;margin-right:.3rem;cursor:pointer" onclick="this.parentNode.parentNode.remove()">'
   const body = document.createElement("div")
   body.className="jade-alert-body"  
   body.innerHTML = data
   div.appendChild(header)
+  div.appendChild(close_button)
   div.appendChild(body)
   document.body.appendChild(div)
 
