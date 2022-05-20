@@ -156,9 +156,10 @@ class Jade{
     
     try{
       
-     //console.log("=============================================================")  
-     //console.log("at load_gist_from_local_server, gist_id:",gist_id)  
-     //console.log("=============================================================")  
+     console.log("=============================================================")  
+     console.log("at load_gist_from_local_server, gist_id:",gist_id)  
+     console.log("URL:",`${url}/${gist_id}/manifest.json`)  
+     console.log("=============================================================")  
 
      //let response = await fetch(`${url}/${gist_id}`)
      let response = await fetch(`${url}/${gist_id}/manifest.json`)
