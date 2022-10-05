@@ -108,7 +108,7 @@ class Jade{
           // need to fall back to atals-query gist server on git hub
           // to publish a gist to this gist-server, run publish <gist-id>
           // from jsvba/gist-server  repo
-          response = await fetch(`https://jade-addin.github.io/gist-server/${gist_id}.json`)
+          response = await fetch(`https://jade-addin.github.io/public-gist-server/${gist_id}.json`)
         }
 
         ////console.log("x-ratelimit-reset", response.headers.get("x-ratelimit-reset"))
@@ -1411,7 +1411,7 @@ class Jade{
       // the default gist, read it from jade-addin's gist server
       // we do this because the examples get loaded very often.
       
-      url=`https://jade-addin.github.io/gist-server/${gist_id}`
+      url=`https://jade-addin.github.io/public-gist-server/${gist_id}`
 
     }
     const gist_url=`https://gist.github.com/${gist_id}`
