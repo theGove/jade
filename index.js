@@ -550,23 +550,99 @@ class Jade{
 
 
   static officeReady(info){// invoked when the office addin infrastructure has loaded
-      if (info.host === Office.HostType.Excel) {
-
-        tag("open-tools").onclick = function(){Jade.open_tools()};
-        tag("open-editor").onclick = function(){Jade.open_editor()};
-        tag("add-module-row").onclick = function(){Jade.toggle_element('add-module');tag('new-module-name').focus()};
-        tag("module-add-button").onclick = function(){Jade.add_code_module(tag('new-module-name').value)};
-        tag("show-import-module-row").onclick = Jade.show_import_module;
-        tag("module-import-button").onclick = function(){Jade.import_code_module(tag('gist-url').value)};
-        tag("open-examples-row").onclick = Jade.open_examples;
-        tag("list-automations-row").onclick = Jade.open_automations;
-        tag("show-survey-row").onclick = function(){Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);};
-        tag("fb-button").onclick = Jade.submit_feedback;
-        tag("show-settings-row").onclick = function(){Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);};
-        tag("settings-button").onclick = Jade.save_settings;
-      
+    //console.log ("host, hosttype----->",info.host, Office.HostType.Excel) 
 
 
+    tag("open-tools").onclick = function(){Jade.open_tools()};
+    tag("open-editor").onclick = function(){Jade.open_editor()};
+    tag("add-module-row").onclick = function(){Jade.toggle_element('add-module');tag('new-module-name').focus()};
+    tag("module-add-button").onclick = function(){Jade.add_code_module(tag('new-module-name').value)};
+    tag("show-import-module-row").onclick = Jade.show_import_module;
+    tag("module-import-button").onclick = function(){Jade.import_code_module(tag('gist-url').value)};
+    tag("open-examples-row").onclick = Jade.open_examples;
+    tag("list-automations-row").onclick = Jade.open_automations;
+    tag("show-survey-row").onclick = function(){Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);};
+    tag("fb-button").onclick = Jade.submit_feedback;
+    tag("show-settings-row").onclick = function(){Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);};
+    tag("settings-button").onclick = Jade.save_settings;
+
+
+    if (info.host === Office.HostType.Word || info.host === Office.HostType.PowerPoint ) {
+      jade_settings.user={
+        ace_options:{
+          selectionStyle:"line",
+          highlightActiveLine:true,
+          highlightSelectedWord:true,
+          readOnly:false,
+          copyWithEmptySelection:false,
+          cursorStyle:"ace",
+          mergeUndoDeltas:true,
+          behavioursEnabled:true,
+          wrapBehavioursEnabled:true,
+          enableAutoIndent:true,
+          showLineNumbers:true,
+          hScrollBarAlwaysVisible:false,
+          vScrollBarAlwaysVisible:false,
+          highlightGutterLine:true,
+          animatedScroll:false,
+          showInvisibles:false,
+          showPrintMargin:false,
+          printMarginColumn:80,
+          printMargin:80,
+          fadeFoldWidgets:false,
+          showFoldWidgets:true,
+          displayIndentGuides:true,
+          showGutter:true,
+          fontSize:"12pt",
+          scrollPastEnd:0,
+          theme:"ace/theme/tomorrow",
+          maxPixelHeight:0,
+          useTextareaForIME:true,
+          scrollSpeed:2,
+          dragDelay:0,
+          dragEnabled:true,
+          focusTimeout:0,
+          tooltipFollowsMouse:true,
+          firstLineNumber:1,
+          overwrite:false,
+          newLineMode:"auto",
+          useWorker:false,
+          navigateWithinSoftTabs:false,
+          wrap:true,
+          indentedSoftWrap:true,
+          foldStyle:"markbegin",
+          mode:"ace/mode/javascript",
+          enableMultiselect:true,
+          enableBlockSelect:true,
+          tabSize:2,
+          useSoftTabs:true
+        } 
+      }
+      jade_settings.workbook={
+        code_module_ids:[],
+        gist_name_server:"https://gns.jsvba.com/",
+        examples_gist_id:"f8e5fc20cff0c19a27765e7ce5fe54fe",
+        styles:{
+          system:null,
+          none:"/*No Theme CSS Used*/",
+          mvp:"https://cdnjs.cloudflare.com/ajax/libs/mvp.css/1.8.0/mvp.css",
+          marx:"https://cdnjs.cloudflare.com/ajax/libs/marx/4.0.0/marx.min.css",
+          water:"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css",
+          "dark water":"https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css",
+          sajura:"https://unpkg.com/sakura.css/css/sakura.css",
+          tacit:"https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.5.5.min.css",
+          pure:"https://unpkg.com/purecss@2.0.6/build/pure-min.css",
+          picnic:"https://cdn.jsdelivr.net/npm/picnic",
+          wing:"https://unpkg.com/wingcss",
+          chota:"https://unpkg.com/chota@latest",
+          bootstrap:"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css",
+        }
+      }
+      Jade.configure_settings()
+      Jade.start_me_up()
+      document.getElementById("menu-msg").style.display = "block"
+    }else if (info.host === Office.HostType.Excel) {
+    
 
           Excel.run(async (excel)=>{
             const xl_settings = excel.workbook.settings.getItemOrNullObject("jade").load("value");
@@ -710,26 +786,27 @@ class Jade{
     Jade.show_element("open-editor")
   }
   //console.log("at init_code_editors       jade_settings.workbook.code_module_ids", jade_settings.workbook.code_module_ids)
-  Excel.run(async (excel)=>{
-    const parser = new DOMParser();
-    for(const code_module_id of jade_settings.workbook.code_module_ids){
-      const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
-      const xmlBlob = xmlpart.getXml();
-      await excel.sync()
-      
-      const doc = parser.parseFromString(xmlBlob.value, "application/xml");
-      const module_name=doc.getElementsByTagName("name")[0].textContent
-      const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
-      //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
-      const options=atob(doc.getElementsByTagName("options")[0].textContent)
-     //console.log("just loaded module", module_name)
-      //console.log("jade_settings2", JSON.parse(jade_settings))
-      //console.log("options", options)
-      //console.log("options-parsed", JSON.parse(options))
-      Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
-    }
-  })
-
+  if(jade_settings.workbook.code_module_ids.length>0){
+    Excel.run(async (excel)=>{
+      const parser = new DOMParser();
+      for(const code_module_id of jade_settings.workbook.code_module_ids){
+        const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
+        const xmlBlob = xmlpart.getXml();
+        await excel.sync()
+        
+        const doc = parser.parseFromString(xmlBlob.value, "application/xml");
+        const module_name=doc.getElementsByTagName("name")[0].textContent
+        const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
+        //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
+        const options=atob(doc.getElementsByTagName("options")[0].textContent)
+      //console.log("just loaded module", module_name)
+        //console.log("jade_settings2", JSON.parse(jade_settings))
+        //console.log("options", options)
+        //console.log("options-parsed", JSON.parse(options))
+        Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
+      }
+    })
+  }
 
  //console.log("end of  start_me_up, jade_settings", jade_settings)
   }
@@ -1005,6 +1082,7 @@ class Jade{
     }
   }
   static show_automations(show_close_button, heading, list){
+    console.log("at list automations")
     const panel_name="panel_listings"
     // get the list of functions
     //###################################################### need to iterate over all modules
@@ -1351,7 +1429,10 @@ class Jade{
     }else{
       //console.log("panel_name",panel_name)
       //console.log("Jade.panel_name_to_module_name(panel_name)",Jade.panel_name_to_module_name(panel_name))
-      jade_modules[Jade.panel_name_to_module_name(panel_name)][script_name]()
+      const mod_name=Jade.panel_name_to_module_name(panel_name)
+      // console.log("mod_name",mod_name, script_name)
+      // console.log("jade_modules[mod_name][script_name]",jade_modules[mod_name][script_name])
+      jade_modules[mod_name][script_name]()
     }
   }
   static init_output(){
@@ -1743,47 +1824,51 @@ class Jade{
   static save_module_to_workbook(code, module_name, mod_settings, xmlid, options, tag_to_hold_new_xml_id){
     // options are currently being ignored, they are handled globally instead of at the module level
     // save to workbook
-    Excel.run(async (excel)=>{
-      //console.log("saving code", panel_name) 
-      if(!mod_settings){
-        mod_settings = {
-          cursorPosition:{row: 0, column: 0},
+    try{// added to bootstrap word implementation
+      Excel.run(async (excel)=>{
+        //console.log("saving code", panel_name) 
+        if(!mod_settings){
+          mod_settings = {
+            cursorPosition:{row: 0, column: 0},
+          }
         }
-      }
-      //The next line has been disabled because we are not currently maintaining options at the module level
-      //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(jade_settings))+"</jade_settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
-  
-      // save module without options
-      const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(mod_settings))+"</jade_settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
-      if(xmlid){
-       //console.log("updating xml", xmlid, typeof xmlid)
-        const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
-        customXmlPart.setXml(module_xml)
-        excel.sync()
-       //console.log("------- launched saving: existing -------")
-        
-      }else{
-        //console.log("creating xml")
-        const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
-        customXmlPart.load("id");
-        await excel.sync();
-  
-        //console.log("customXmlPart",customXmlPart.getXml())
-        // this is a newly created module and needs to have a custom xmlid part made for it
-       //console.log("23443", jade_settings, customXmlPart.id)
-        jade_settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
-        Jade.write_settings_to_workbook()
-       //console.log("------- launched saving: newly created -------")
-       //console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
-        if(tag_to_hold_new_xml_id){
-         //console.log("writing.....xmlid", customXmlPart.id)
-          tag_to_hold_new_xml_id.dataset.module_xmlid = customXmlPart.id
-         //console.log(tag_to_hold_new_xml_id)
+        //The next line has been disabled because we are not currently maintaining options at the module level
+        //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(jade_settings))+"</jade_settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
+    
+        // save module without options
+        const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(mod_settings))+"</jade_settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
+        if(xmlid){
+        //console.log("updating xml", xmlid, typeof xmlid)
+          const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
+          customXmlPart.setXml(module_xml)
+          excel.sync()
+        //console.log("------- launched saving: existing -------")
+          
+        }else{
+          //console.log("creating xml")
+          const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
+          customXmlPart.load("id");
+          await excel.sync();
+    
+          //console.log("customXmlPart",customXmlPart.getXml())
+          // this is a newly created module and needs to have a custom xmlid part made for it
+        //console.log("23443", jade_settings, customXmlPart.id)
+          jade_settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
+          Jade.write_settings_to_workbook()
+        //console.log("------- launched saving: newly created -------")
+        //console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
+          if(tag_to_hold_new_xml_id){
+          //console.log("writing.....xmlid", customXmlPart.id)
+            tag_to_hold_new_xml_id.dataset.module_xmlid = customXmlPart.id
+          //console.log(tag_to_hold_new_xml_id)
+          }
         }
-      }
-  
-    })
-  
+      
+    
+      })
+    }catch(e){
+      console.log("Not in Excel.  No saving yet...")
+    }
   }
   static load_function_names_select(code,panel_name){// reads the function names from the code and puts them in the function name select
 
