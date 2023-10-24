@@ -1,4 +1,5 @@
 "use strict"
+let PLATFORM=null//used to be able to know if we are in excel or word or powerpoint throughout the code
 const jade_settings={}
 let jade_css_suffix=""
 const jade_panels=['panel_home','panel_examples']
@@ -565,7 +566,7 @@ class Jade{
     tag("fb-button").onclick = Jade.submit_feedback;
     tag("show-settings-row").onclick = function(){Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);};
     tag("settings-button").onclick = Jade.save_settings;
-
+    PLATFORM = info.host  // make the host knowable elsewhere
 
     if (info.host === Office.HostType.Word || info.host === Office.HostType.PowerPoint ) {
       jade_settings.user={
@@ -2067,6 +2068,12 @@ class Jade{
     return (window.innerHeight-73)+"px"
   }
   static default_code(panel_name){
+    //console.log("platform:",PLATFORM)
+    if(PLATFORM==="PowerPoint"){
+      return powerpoint_module()
+    }else if(PLATFORM==="Word"){
+      return word_module()
+    }
     let code = `async function write_timestamp(excel){
   /*Jade.listing:{"name":"Timestamp","description":"This sample function records the current time in the selected cells"}*/
   excel.workbook.getSelectedRange().values = new Date();
@@ -2088,6 +2095,8 @@ function auto_exec(){
     }
     return code
   }
+
+
   static show_import_module(){
    //console.log("at show import", jade_settings.workbook.module_to_import)
     if(jade_settings.workbook.module_to_import){
@@ -2154,5 +2163,22 @@ function tag(id){
   // a short way to get an element by ID
   return document.getElementById(id)
 }
+
+function powerpoint_module(){
+  // default code module when running under powerpoint
+  return `function run_powerpoint(){
+    Jade.load_js('http://localhost:5500/powerpoint.js')
+  }`
+}
+function word_module(){
+    // default code module when running under word
+    return `function run_word(){
+      Jade.load_js('http://localhost:5500/word.js')
+    }`
+  
+}
+    
+
+
 class jade extends Jade{}// just let lowercase call to jade work
 class JADE extends Jade{}// just let uppercase call to jade work
