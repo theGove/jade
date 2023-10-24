@@ -86,7 +86,7 @@
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started automating your workflow!"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="JavaScript"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Automation Development"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="local"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="The JavaScript Automation Development Environment add-in loaded succesfully. Go to the HOME tab and click the 'Automation Development' button to get started."/>
