@@ -2168,6 +2168,10 @@ function powerpoint_module(){
   // default code module when running under powerpoint
   return `function run_powerpoint(){
     Jade.load_js('http://localhost:5500/powerpoint.js')
+    
+    function load(){
+      Jade.load_js('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+    }
   }`
 }
 function word_module(){
