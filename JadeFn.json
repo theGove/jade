@@ -1,0 +1,33 @@
+{
+    "allowCustomDataForDataTypeAny": true,
+    "allowErrorForDataTypeAny": true,
+    "functions": [
+      {
+        "id" : "fn",
+        "name": "fn",
+        "helpUrl":"https://support.jsvba.com/?support",
+        "description": "Run a Javascript custom function you created using JADE",
+        "result": {
+          "type": "any",
+          "dimensionality": "matrix"
+        },
+        "parameters": [
+          {
+            "name": "Function Name",
+            "description": "The name of the function you created",
+            "type": "string",
+            "dimensionality": "scalar"
+          },
+          {
+            "name":"Arguments",
+            "description":"Any number of arguments to be passed to your function.",
+            "type":"any",
+            "optional":true,
+            "dimensionality":"matrix",
+            "repeating":true 
+          }
+
+        ]
+      }
+    ]
+  }

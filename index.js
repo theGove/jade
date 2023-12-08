@@ -424,9 +424,24 @@ class Jade{
       jade_panel_stack.pop()
       Jade.show_panel(jade_panel_stack.pop())
   }
+
   static open_editor(){
       Jade.show_panel(jade_code_panels[0])
   }
+
+
+  static open_custom_functions(){
+      if(!jade_modules.custom_functions){
+        Jade.add_code_module("custom_functions",custom_functions_default_script())
+      }
+      Jade.update_editor_script("panel_custom_functions_module")
+      Jade.show_panel("panel_custom_functions_module")
+      Jade.save_custom_functions()
+  }
+
+
+
+  
   static open_output(){
       Jade.show_panel("panel_output")
   }
@@ -475,7 +490,7 @@ class Jade{
       //if(!header && )
       if(!tag("panel_output").lastChild.lastChild.firstChild.tagName && !heading){
           //no output here, need a headdng
-          heading=""
+          heading=" "
       }
       if(heading){
           // there is a header, so make a new block
@@ -496,13 +511,14 @@ class Jade{
           header.innerHTML = '<span class="jade-output-time">' + hours + ":" + ("0"+d.getMinutes()).slice(-2) + ":" + ("0"+d.getSeconds()).slice(-2) + ampm + "</span> " + heading + '<div class="jade-output-close"><i class="fas fa-times" style="color:white;margin-right:.3rem;cursor:pointer" onclick="this.parentNode.parentNode.parentNode.remove()"></div>'
           const body = document.createElement("div")
           body.className="jade-output-body"  
-          body.innerHTML = '<div style="margin:0;font-family: monospace;">' + data.split("\n").join("<br />")  + "<br />"+ "</div>"
+          body.innerHTML = '<div style="margin:0;font-family: monospace;">' + data.toString().split("\n").join("<br />")  + "<br />"+ "</div>"
           div.appendChild(header)
           div.appendChild(body)
           tag("panel_output").appendChild(div)
       }else{
           // no header provided, append to most recently added
-          tag("panel_output").lastChild.lastChild.firstChild.innerHTML += data.split("\n").join("<br />") + "<br />"
+          
+          tag("panel_output").lastChild.lastChild.firstChild.innerHTML += data.toString().split("\n").join("<br />") + "<br />"
       }
 
     
@@ -561,6 +577,7 @@ class Jade{
     tag("show-import-module-row").onclick = Jade.show_import_module;
     tag("module-import-button").onclick = function(){Jade.import_code_module(tag('gist-url').value)};
     tag("open-examples-row").onclick = Jade.open_examples;
+    tag("open-custom-functions-row").onclick = Jade.open_custom_functions;
     tag("list-automations-row").onclick = Jade.open_automations;
     tag("show-survey-row").onclick = function(){Jade.toggle_element('survey');tag('fb-type').focus();tag('fb-message').scrollIntoView(true);};
     tag("fb-button").onclick = Jade.submit_feedback;
@@ -791,6 +808,7 @@ class Jade{
     Excel.run(async (excel)=>{
       const parser = new DOMParser();
       for(const code_module_id of jade_settings.workbook.code_module_ids){
+        console.log("--------------------code module id", code_module_id)
         const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
         const xmlBlob = xmlpart.getXml();
         await excel.sync()
@@ -803,9 +821,10 @@ class Jade{
       //console.log("just loaded module", module_name)
         //console.log("jade_settings2", JSON.parse(jade_settings))
         //console.log("options", options)
-        //console.log("options-parsed", JSON.parse(options))
+        console.log("module_name", module_name)
         Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
       }
+      Jade.save_custom_functions()
     })
   }
 
@@ -1372,6 +1391,7 @@ class Jade{
       })
 
       //Now that we have loaded this code editor, try to run it's autoec
+      console.log("panel name", panel_name,Jade.panel_name_to_module_name(panel_name))
       if(jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec){
          // if this module has an autoexec, let's run it
          jade_modules[Jade.panel_name_to_module_name(panel_name)].auto_exec()
@@ -1716,7 +1736,11 @@ class Jade{
     // save the script to the workbook.  This is the most important thing
     // we are doing at the moment.  Do it first
    //console.log("about to write module")
+   console.log("panel_name",panel_name)
     Jade.write_module_to_workbook(code, panel_name)
+
+
+
   
     // update the height of the editor in case it has gotten out of synch
     tag(panel_name + "_editor-page").style.height = Jade.editor_height()
@@ -1743,8 +1767,25 @@ class Jade{
 
     // put the function names in the function dropdown
     Jade.load_function_names_select(parsed_code, panel_name)
+
+    // save custom functions to session storage so they are accessible from the workbook
+    if("panel_custom_functions_module" === panel_name){
+      //This is a custom function module, need to push to local storage
+      Jade.save_custom_functions()
+    }
     
     return true
+  }
+
+  static async save_custom_functions(){
+    // save the functions in custom functions to local storage so they can be read from the worksheet
+    for(const fnName of Object.keys(jade_modules.custom_functions)){
+      const newFnName = "jade_custom_function_"+fnName
+      const fnText=jade_modules.custom_functions[fnName].toString().replace(fnName, newFnName)
+      const hash = await sha256(fnText)        
+      localStorage.setItem(newFnName,fnText)
+      localStorage.setItem("hash_" + newFnName,hash)
+    }
   }
   static incorporate_code(code, module_name_in){
     // It turns out that the script block does not need to persist in the HTML
@@ -2159,6 +2200,26 @@ function alert(data, heading){
   document.body.appendChild(div)
 
 }
+
+
+async function sha256(message) {
+  // encode as UTF-8
+  const msgBuffer = new TextEncoder().encode(message);                    
+
+  // hash the message
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+
+  // convert ArrayBuffer to Array
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+  // convert bytes to hex string                  
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+
+
+
 function tag(id){
   // a short way to get an element by ID
   return document.getElementById(id)
@@ -2182,7 +2243,51 @@ function word_module(){
   
 }
     
+function custom_functions_default_script(){
+  return `function see_result(){ 
+    // use this function to see  
+    // results while developing
+    
+    const location="alert"  // or activecell or output
+    show_result(sphereVolume(3), location)
+  }
+  
+  
+  function sphereVolume(radius) {
+    // an example custom function
+    return Math.pow(radius, 3) * 4 * Math.PI / 3
 
+    /* enter the following formula in a cell
+       to use this function in a worksheet.
+
+       =JADE.fn("sphereVolume",3)
+
+       Be sure there is no space before the equal sign
+    */   
+  }
+  
+  
+  function show_result(result, location){
+    //display data in the specified location 
+    switch(location){
+      case "output":
+        Jade.print(val, "Function Result")
+        Jade.open_output()
+        break
+      case "activecell":  
+      case "active cell":  
+        Excel.run(async (excel)=>{
+          excel.workbook.getSelectedRange().values = value
+          excel.sync();
+        })
+        break
+      default:
+        alert(result, "Function Result")
+    }
+  
+  }
+  `
+}
 
 class jade extends Jade{}// just let lowercase call to jade work
 class JADE extends Jade{}// just let uppercase call to jade work
