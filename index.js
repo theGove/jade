@@ -808,7 +808,6 @@ class Jade{
     Excel.run(async (excel)=>{
       const parser = new DOMParser();
       for(const code_module_id of jade_settings.workbook.code_module_ids){
-        console.log("--------------------code module id", code_module_id)
         const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
         const xmlBlob = xmlpart.getXml();
         await excel.sync()
