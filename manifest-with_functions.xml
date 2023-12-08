@@ -37,13 +37,13 @@
         <AllFormFactors>
           <ExtensionPoint xsi:type="CustomFunctions">
             <Script>
-              <SourceLocation resid="JadeFnJs" />
+              <SourceLocation resid="jadeFnJs" />
             </Script>
             <Page>
-              <SourceLocation resid="JadeFnHtml"/>
+              <SourceLocation resid="jadeFnHtml"/>
             </Page>
             <Metadata>
-              <SourceLocation resid="JadeFnMeta"/>
+              <SourceLocation resid="jadeFnMeta"/>
             </Metadata>
             <Namespace resid="Funcns" />
           </ExtensionPoint>
@@ -97,9 +97,9 @@
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
         <bt:Url id="Commands.Url" DefaultValue="https://localhost:5173/jade/commands.html"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:5173/jade/index.html"/>
-        <bt:Url id="JadeFnJs" DefaultValue="https://localhost:5173/jade/jadeFn.js" />
-        <bt:Url id="JadeFnHtml" DefaultValue="https://localhost:5173/jade/mypage.html" />
-        <bt:Url id="JadeFnMeta" DefaultValue="https://localhost:5173/jade/jadeFn.json" />
+        <bt:Url id="jadeFnJs" DefaultValue="https://localhost:5173/jade/jadeFn.js" />
+        <bt:Url id="jadeFnHtml" DefaultValue="https://localhost:5173/jade/jadeFn.html" />
+        <bt:Url id="jadeFnMeta" DefaultValue="https://localhost:5173/jade/jadeFn.json" />
 
       </bt:Urls>
       <bt:ShortStrings>
