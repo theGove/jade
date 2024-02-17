@@ -11,9 +11,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/acorn/8.6.0/acorn.min.js" integrity="sha512-GxXGTaS+f1zewxxP8YJT8y74B9jarcQzPSP3j1+pYKk4pMmOikcKBZmjVP+U1+wAiAqv+FwISQXZnPRmdWXaEw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="api.js"></script>
 
 <script>
-      function ie_message(){
+      function initialize(){
+        // check for ID
           Office.onReady(function(a){
             if (navigator.userAgent.indexOf("Trident") === -1) {
               try{
@@ -39,7 +41,7 @@ body{
     padding: 0;
     background-color: #EEE;/*rgb(252,239,205);*/
     font-size: 1.2rem;
-    font-family: "Segoe UI Web (West European)",Segoe UI,-apple-system,BlinkMacSystemFont,Roboto,Helvetica Neue,sans-serif;
+    font-family: Roboto,Helvetica Neue,sans-serif;
 }
 .jade-head{
     display:block;
@@ -73,9 +75,19 @@ body{
     text-align:center;
     word-wrap: break-word;
     line-height: 100%;
+}
+
+.jade-small-heading{
+    font-weight: 400;
+    /*color:#800000;*/
+    font-size: 1rem;
+    text-align:center;
+    word-wrap: break-word;
+    line-height: 100%;
   }
 
-  .jade-body{
+
+.jade-body{
       padding: 0 1.5rem 1.5rem 1.5rem;
   }
 .jade-table{
@@ -214,18 +226,18 @@ cursor:default;
 </style>
 
 </head>
-<body onload="ie_message()">
-  <div id="panel_home">  
+<body onload="initialize()">
+  <div id="panel_home" style="display:none">  
     <div class="jade-head">
         <div class="jade-logo">
           <img width="90" height="90" src="https://byuis.github.io/taskpane/assets/logo-filled.png" alt="JADE" title="JADE" />
         </div>
-        <h1 class="jade-heading-1">J.A.D.E.</h1>
+        <h1 class="jade-heading-1">JADE</h1>
       </div> 
     <div class="jade-body"> 
     <section id="menu-msg"  style="display:none">
       
-      <h2  class="jade-heading-2">JavaScript Automation Development Environment</h2>
+      <h2  class="jade-small-heading">JavaScript Automation Development Environment</h2>
       <table id="menu" class="jade-table"  style="margin-top: 1rem;">
 
         <tr class="jade-clickable" id="open-tools">

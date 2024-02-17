@@ -37,7 +37,7 @@ class Jade{
   // consume it or import it.  Gists have multiple files.
   // .js files become modules in jsvba
   // other file types are stored in window.gist_files object
-  // using thier filename as the key
+  // using their filename as the key
 
   // if module_name is null, load at global scope
   // if module_name is specified, use that name as the module name
@@ -45,6 +45,30 @@ class Jade{
   
   
   //console.log("gisting", gist_id)
+
+    //Check to see if we are running on local host.  If so, we'll check to see if we can get the gist locally
+    if(window.location.hostname==="localhost"){
+      // this is implementing the same logic as load_gist_from_local_server.  Gove's not sure where
+      // load_gist_from_local_server is called.  This is desigend to work the VITE local server configured
+      // for local development
+      const url=window.location.origin + "/local-gist-server"
+      const response = await fetch(`${url}/${gist_id}/manifest.json`)
+      if(response.status===200){
+        let files = await response.json()
+        const data={files:{}}
+        for(const file of files){
+          const response = await fetch(`${url}/${gist_id}/${file}`)
+          data.files[file]={
+            filename:file,
+            content:await response.text()
+          }
+        }
+        jade.integrate_gist(gist_id,data, module_name)  
+        return
+      }
+    }
+
+
     try{
       
      //console.log("gist_id",gist_id)  
@@ -302,9 +326,76 @@ class Jade{
       }
     }
   
+    static async getBloggerPost(blogName, postName){
+
+      // get a blog post.  Assumes published on 2022/02
+      
+      if(window.location.hostname==="localhost"){
+        // running on localhost, get from localserver
+
+        const url=window.location.origin + "/local-blog-server"
+        let response = await fetch(`${url}/${blogName}/metadata/${postName}.json`)
+        if(response.status===200){
+          //found metadata for the post
+          const metadata = await response.json()
+          response = await fetch(`${url}/${blogName}/posts/${postName}.${metadata.type}`)
+          if(response.status===200){
+
+            ;console.log("------ Got post from local blog server ------\n",blogName,postName,"\n--------------------------------------------")
+            return await response.text()
+          }  
+        }
+      }
+
+      //if we got this far, we need to fetch from blogger
+      // get from blogger
+      const request = { mode: "get-page" }
+      request.source = blogName
+      request.webPath = postName
+      let api_url = `https://${request.source}.blogspot.com?api`
+      let api_response = await api_request(request, api_url)
+      let source = getRealContentFromBlogPost(api_response.source)
+      return source
+
+    }
+
+
+    static async bindModule(url_or_code){
+          // to invoke this code, import a code module with this code: excel-assessment/post/100
+      // where excel-assessment is the name of the blog (before .blogspot.com) and 
+      // post is the name of the post.  The blog must be published in february of 2022 so it has a url of 
+      // https://excel-assessment.blogspot.com/2022/02/post.html
+      // anything else in the path will be sent as parameters to a function named "autoexec"
+
+      // special loading to handle grading of excel assessments
+      console.log("I'm Blogging!")
+
+      // currently, only binding to blogger module.  need to add url, gist, and internal module (written in jade)
+
+      const parts=url_or_code.split("/")
+      const blogName = parts.shift()
+      const postName = parts.shift()
+      let source = await Jade.getBloggerPost(blogName, postName)
+
+      await Jade.incorporate_code(source, "initialize")
+      Jade.save_module_to_workbook(source, "initialize")
+      console.log("module source", source)
+      try{
+        // for opened modules the auto-run function is called initalize.
+        console.log("fire fire fire fire fire fire fire fire fire fire fire fire ")
+        jade_modules["initialize"].initialize(...parts)
+      }catch(e){
+        console.warn("Unable to run autoexec()",e)
+      }
+
+
+      
+  }
+  
   static async import_code_module(url_or_gist_id){
-      jade_settings.workbook.module_to_import=url_or_gist_id
-     //console.log("at import code mod", jade_settings.workbook)
+     //console.log("at import code mod", url_or_gist_id)
+
+     jade_settings.workbook.module_to_import=url_or_gist_id
 
       Jade.hide_element("import-module")
       Jade.save_settings()
@@ -312,6 +403,9 @@ class Jade{
           return
       }
       let url=null
+
+      
+
       if(url_or_gist_id.substr(0,4)==="http"){
           // check to see if GIST url
           if(url_or_gist_id.toLowerCase().includes("gist.github.com")){
@@ -439,6 +533,7 @@ class Jade{
     jade.load_gist("0ad9cb51c9c7cdd79500a8e51ee85a18")
   }
 
+
   static reset(){
       Jade.show_panel("panel_home")
   }
@@ -546,13 +641,12 @@ class Jade{
 
 
   // Class Methods NOT meant to be called by Jade Users
-  // It's not really a problem if they do, we just don't1
+  // It's not really a problem if they do, we just don't
   // think they are useful and we don't document them.
 
 
   static officeReady(info){// invoked when the office addin infrastructure has loaded
     //console.log ("host, hosttype----->",info.host, Office.HostType.Excel) 
-
 
     tag("open-tools").onclick = function(){Jade.open_tools()};
     tag("open-editor").onclick = function(){Jade.open_editor()};
@@ -729,22 +823,94 @@ class Jade{
            //console.log("before start_me_up, jade_settings", jade_settings)
             Jade.configure_settings()
             Jade.start_me_up()
-            document.getElementById("menu-msg").style.display = "block"
+            if(document.getElementById("menu-msg")){
+              document.getElementById("menu-msg").style.display = "block"
+            }
           })
       }else{
           document.getElementById("sideload-msg").style.display = "block"
           
       }
   }
-  static start_me_up(){
+  static async start_me_up(){
   //console.log("at start_me_up")
+
+
+  const urlParams = new URLSearchParams(window.location.search);
+  let mode = urlParams.get('mode')
+  console.log("mode", mode)
+
   jade_settings.workbook.styles.system=tag("head_style").innerText
   jade_panels.push("panel_home")
   
   //load code from one gist if specified.  
  //console.log("about ot load")
-  if(jade_settings.workbook.load_gist_id){
-   //console.log("in if")
+  if(mode==="jade"){
+    // an intermediate step to allow jade tools to stay on the main jade screen until new manifest is published
+    if(tag("open-tools")){
+      tag("open-tools").style.display="none"
+    }
+  }else if(mode==="tools"){
+    // loading excel tools
+    jade.load_gist("0ad9cb51c9c7cdd79500a8e51ee85a18")
+    mode="loading"
+  }else if(mode==="module"){
+  //binding a module to this workbook
+
+    let boundModuleExists=false 
+    if(jade_settings.workbook.code_module_ids.length>0){
+      await Excel.run(async (excel)=>{
+        const parser = new DOMParser();
+        for(const code_module_id of jade_settings.workbook.code_module_ids){
+          const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
+          const xmlBlob = xmlpart.getXml();
+          await excel.sync()
+          
+          const doc = parser.parseFromString(xmlBlob.value, "application/xml");
+          const module_name=doc.getElementsByTagName("name")[0].textContent
+          const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
+          //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
+          const options=atob(doc.getElementsByTagName("options")[0].textContent)
+          console.log("just loaded module", module_name)
+          console.log(module_code)
+          
+          if(module_name==="initialize"){
+            boundModuleExists=true
+          }
+          //console.log("jade_settings2", JSON.parse(jade_settings))
+          //console.log("options", options)
+          //console.log("options-parsed", JSON.parse(options))
+          
+          Jade.incorporate_code(module_code, module_name)
+          //Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
+        }
+      })
+    }
+    console.log("boundmodule---->", boundModuleExists)
+
+    if(boundModuleExists){
+      tag("panel_home").innerHTML=``  
+      console.log("Earth Earth Earth Earth Earth Earth Earth Earth Earth ")
+
+      jade_modules.initialize.initialize()
+
+    }else{
+
+    tag("panel_home").innerHTML=`
+    <div style="background-color:darkgreen; text-align:center;padding:1rem" >
+      <div style="background-color:white; padding:1rem;">
+        <div style="margin-bottom:1rem">Enter Code:</div>
+          <input id="module-url-or-code" type="text" style="width:100%" value="excel-assessment/x/100"> 
+        <div style="text-align:right">
+          <button onClick="tag('spinner').style.display='';Jade.bindModule(tag('module-url-or-code').value)">Import</button>
+          </div>
+          <img id="spinner" src="assets/spinner.gif" style="display:none">
+      </div>
+    </div>
+    `
+    }
+  }else if(jade_settings.workbook.load_gist_id){
+    //console.log("in if")
     if(jade_settings.workbook.load_gist_id.substr(0,4).toLowerCase()==="http"){
       // must be a javascript file
       Jade.load_js(jade_settings.workbook.load_gist_id)
@@ -752,7 +918,11 @@ class Jade{
       // must be a gistid
       Jade.load_gist(jade_settings.workbook.load_gist_id)
     }
-    
+    mode="loading"    
+  }
+
+  if(mode!=="loading"){
+    tag("panel_home").style.display="block"
   }
   
   // add event listner to "add code module" input
@@ -804,6 +974,7 @@ class Jade{
         //console.log("jade_settings2", JSON.parse(jade_settings))
         //console.log("options", options)
         //console.log("options-parsed", JSON.parse(options))
+        debugger
         Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
       }
     })
@@ -975,6 +1146,7 @@ class Jade{
   }
   static add_code_module(name,code){
     // a module built with whatever code is in Jade.default_code
+    
     if(!name){name="code"}
     // check for duplicate name--that wreaks havoc
     let found_panel=false
@@ -1189,7 +1361,7 @@ class Jade{
       }else{
         //console.log(" hiding", panel)
         if(panel==="panel_examples"){
-          if(tag(panel).style.display!=="none"){  
+          if(tag(panel)?.style.display!=="none"){  
             // close and destroy examples interface so we don't have conflicts in ID if hte example gets used
             for(const elem of document.getElementsByClassName("e-canvas")){
               // clear all example canvases
@@ -1203,7 +1375,9 @@ class Jade{
             
           }
         }
-        tag(panel).style.display="none"
+        if(tag(panel)){
+          tag(panel).style.display="none"
+        }
       }
     }
   
@@ -1795,6 +1969,8 @@ class Jade{
     document.body.appendChild(script);
     document.body.lastChild.remove()
   }
+
+
   static write_module_to_workbook(code, panel_name){
     let options = {fontSize:"14pt"}
     const settings = {
@@ -1843,8 +2019,7 @@ class Jade{
           const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
           customXmlPart.setXml(module_xml)
           excel.sync()
-        //console.log("------- launched saving: existing -------")
-          
+        //console.log("------- launched saving: existing -------") 
         }else{
           //console.log("creating xml")
           const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
