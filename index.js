@@ -340,8 +340,7 @@ class Jade{
           const metadata = await response.json()
           response = await fetch(`${url}/${blogName}/posts/${postName}.${metadata.type}`)
           if(response.status===200){
-
-            ;console.log("------ Got post from local blog server ------\n",blogName,postName,"\n--------------------------------------------")
+            // ;console.log("------ Got post from local blog server ------\n",blogName,postName,"\n--------------------------------------------")
             return await response.text()
           }  
         }
@@ -359,6 +358,15 @@ class Jade{
 
     }
 
+    static async isHex(rawData){
+      // returns true if each character in rawData is in the range 0-F
+      for(const digit of rawData.toUpperCase().split("")){
+        if(isNaN(digit) && (str.charCodeAt(0)<65 || str.charCodeAt(0)>70)){
+          return false
+        }
+      }
+      return true
+    }
 
     static async bindModule(url_or_code){
           // to invoke this code, import a code module with this code: excel-assessment/post/100
@@ -368,14 +376,26 @@ class Jade{
       // anything else in the path will be sent as parameters to a function named "autoexec"
 
       // special loading to handle grading of excel assessments
-      console.log("I'm Blogging!")
+      console.log("I'm Binding!")
+      let source=null
+      if(url_or_code.length >= 32 && Jade.isHex(url_or_code)){
+        // this is a url to a js file
+        const response = await fetch(url_or_code);
+        source = await response.text();
+  
+      }else if(url_or_code.length >= 32 && Jade.isHex(url_or_code)){
+        // this could be a gist_id.  Let's check
+        const response = await fetch("https://api.github.com/gists/");
+        const movies = await response.text();
+        console.log(movies); 
+      }
 
       // currently, only binding to blogger module.  need to add url, gist, and internal module (written in jade)
 
       const parts=url_or_code.split("/")
       const blogName = parts.shift()
       const postName = parts.shift()
-      let source = await Jade.getBloggerPost(blogName, postName)
+      source = await Jade.getBloggerPost(blogName, postName)
 
       await Jade.incorporate_code(source, "initialize")
       Jade.save_module_to_workbook(source, "initialize")
@@ -391,10 +411,21 @@ class Jade{
 
       
   }
+
+  static async bloggerModule(blogName, postName){
+    //loads a code module from blogger  gives it the name blogname_postname
+    // returns a reference to the jade module
+    const moduleName = blogName.split("-").join("_") + "_" + postName.split("-").join("_")
+    if(!jade_modules[moduleName]){
+        await Jade.incorporate_code(await Jade.getBloggerPost(blogName, postName), moduleName)  
+    }  
+    return jade_modules[moduleName]
+}
+
   
   static async import_code_module(url_or_gist_id){
      //console.log("at import code mod", url_or_gist_id)
-
+     let module_name=null
      jade_settings.workbook.module_to_import=url_or_gist_id
 
       Jade.hide_element("import-module")
