@@ -326,9 +326,9 @@ class Jade{
       }
     }
   
-    static async getBloggerPost(blogName, postName){
+    static async getBloggerPost(blogName, postName, pubYear, pubMonth){
 
-      // get a blog post.  Assumes published on 2022/02
+      // get a blog post.  if pubYear and pubMonth not supplied, Assumes published on 2022/02
       
       if(window.location.hostname==="localhost"){
         // running on localhost, get from localserver
@@ -346,11 +346,16 @@ class Jade{
         }
       }
 
+
+
       //if we got this far, we need to fetch from blogger
       // get from blogger
       const request = { mode: "get-page" }
       request.source = blogName
       request.webPath = postName
+      request.pubYear = pubYear
+      request.pubMonth = pubMonth
+      console.log("request",request)
       let api_url = `https://${request.source}.blogspot.com?api`
       let api_response = await api_request(request, api_url)
       let source = getRealContentFromBlogPost(api_response.source)
@@ -361,7 +366,7 @@ class Jade{
     static async isHex(rawData){
       // returns true if each character in rawData is in the range 0-F
       for(const digit of rawData.toUpperCase().split("")){
-        if(isNaN(digit) && (str.charCodeAt(0)<65 || str.charCodeAt(0)>70)){
+        if(isNaN(digit) && (digit.charCodeAt(0)<65 || digit.charCodeAt(0)>70)){
           return false
         }
       }
@@ -392,32 +397,53 @@ class Jade{
 
       // currently, only binding to blogger module.  need to add url, gist, and internal module (written in jade)
 
-      const parts=url_or_code.split("/")
-      const blogName = parts.shift()
-      const postName = parts.shift()
-      source = await Jade.getBloggerPost(blogName, postName)
+      let parameters=url_or_code.split("|")      
+      const parts=parameters.shift().split("/")
+      let blogName = parts[0]
+      let postName = null
+      let pubYear = "2022"
+      let pubMonth = "02"
+     
+      if(parts.length===1){
+        // only supplied the blog identifier.
+        postName = "index"
+      }else if(parts.length===2){
+        // only supplied blog identifed and post name
+        postName = parts[1]
+      }else if(parts.length===3){
+        console.log("three parts of the blogger identifer supplied.  This is invalid")
+        // need to give an error message
+      }else if(parts.length===4){
+        pubYear = parts[1]
+        pubMonth = parts[2]
+        postName = parts[3]
+      }
 
-      await Jade.incorporate_code(source, "initialize")
-      Jade.save_module_to_workbook(source, "initialize")
-      console.log("module source", source)
+      const theModule = await Jade.incorporateBloggerModule(blogName,pubYear, pubMonth, postName, parameters)
+      const params1={
+        blogName,postName,pubMonth,pubYear,
+        args:parameters,
+        module:theModule
+      }
       try{
-        // for opened modules the auto-run function is called initalize.
-        console.log("fire fire fire fire fire fire fire fire fire fire fire fire ")
-        jade_modules["initialize"].initialize(...parts)
+        // for opened modules the auto-run function is called initialize.
+        theModule.initialize(params1)
       }catch(e){
-        console.warn("Unable to run autoexec()",e)
+        console.warn("Unable to run initialize() of blog module", blogName. postName,e)
       }
 
 
       
   }
-
-  static async bloggerModule(blogName, postName){
+  
+  static async incorporateBloggerModule(blogName,pubYear, pubMonth, postName){
     //loads a code module from blogger  gives it the name blogname_postname
     // returns a reference to the jade module
-    const moduleName = blogName.split("-").join("_") + "_" + postName.split("-").join("_")
+    const moduleName = `${blogName}/${pubYear}/${pubMonth}/${postName}`
     if(!jade_modules[moduleName]){
-        await Jade.incorporate_code(await Jade.getBloggerPost(blogName, postName), moduleName)  
+        const source = await Jade.getBloggerPost(blogName, postName, pubYear, pubMonth)
+        const incorporateBloggerModule = await Jade.incorporate_code(source, moduleName)  
+        //if(saveToWorkbook){Jade.save_module_to_workbook(source, "initialize")}
     }  
     return jade_modules[moduleName]
 }
@@ -931,7 +957,7 @@ class Jade{
     <div style="background-color:darkgreen; text-align:center;padding:1rem" >
       <div style="background-color:white; padding:1rem;">
         <div style="margin-bottom:1rem">Enter Code:</div>
-          <input id="module-url-or-code" type="text" style="width:100%" value="excel-assessment/x/100"> 
+          <input id="module-url-or-code" type="text" style="width:100%" value="excel-assessment|2024/02/is-110-fall-2024|eyJpZCI6ImFzZmd0NjVyIiwiZmlyc3ROYW1lIjoiR292ZSIsImxhc3ROYW1lIjoiQWxsZW4ifQ"> 
         <div style="text-align:right">
           <button onClick="tag('spinner').style.display='';Jade.bindModule(tag('module-url-or-code').value)">Import</button>
           </div>

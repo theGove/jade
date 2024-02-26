@@ -101,16 +101,19 @@ const Slick = {
   
   
   async function get_page_content(parameters) {
-    log("parameters-->", parameters)
+    log("jade get_page_content parameters-->", parameters)
     const params = parameters
+    if(!params.pubYear){params.pubYear="2022"}
+    if(!params.pubMonth){params.pubMonth="02"}
     const page_url = new URL(window.location)
     let response = null
     let api_fetch_url = null
     if (params.url) {
       api_fetch_url = params.url
     } else {
-      api_fetch_url = `${page_url.protocol}//${page_url.host}/2022/02/${params.webPath}.html`
+      api_fetch_url = `${page_url.protocol}//${page_url.host}/${params.pubYear}/${params.pubMonth}/${params.webPath}.html`
     }
+
   
     response = await fetch(api_fetch_url)
     const page_content = await response.text()
