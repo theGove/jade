@@ -181,10 +181,10 @@ class Jade{
     
     try{
       
-     console.log("=============================================================")  
-     console.log("at load_gist_from_local_server, gist_id:",gist_id)  
-     console.log("URL:",`${url}/${gist_id}/manifest.json`)  
-     console.log("=============================================================")  
+     //console.log("=============================================================")  
+     //console.log("at load_gist_from_local_server, gist_id:",gist_id)  
+     //console.log("URL:",`${url}/${gist_id}/manifest.json`)  
+     //console.log("=============================================================")  
 
      //let response = await fetch(`${url}/${gist_id}`)
      let response = await fetch(`${url}/${gist_id}/manifest.json`)
@@ -329,10 +329,19 @@ class Jade{
     static async getBloggerPost(blogName, postName, pubYear, pubMonth){
 
       // get a blog post.  if pubYear and pubMonth not supplied, Assumes published on 2022/02
+      const blogPathElements = blogName.split("/")
+      if(blogPathElements.length===4){
+        // we have a full path specified as the first argument, overwrite the others
+        blogName = blogPathElements[0]
+        pubYear  = blogPathElements[1]
+        pubMonth = blogPathElements[2]
+        postName = blogPathElements[3]
+      }
       
+      //console.log("blogPathElements",blogPathElements)
       if(window.location.hostname==="localhost"){
         // running on localhost, get from localserver
-
+        
         const url=window.location.origin + "/local-blog-server"
         let response = await fetch(`${url}/${blogName}/metadata/${postName}.json`)
         if(response.status===200){
@@ -341,7 +350,7 @@ class Jade{
           response = await fetch(`${url}/${blogName}/posts/${postName}.${metadata.type}`)
           if(response.status===200){
             // ;console.log("------ Got post from local blog server ------\n",blogName,postName,"\n--------------------------------------------")
-            return await response.text()
+            return await await response.text()
           }  
         }
       }
@@ -355,7 +364,7 @@ class Jade{
       request.webPath = postName
       request.pubYear = pubYear
       request.pubMonth = pubMonth
-      console.log("request",request)
+      //console.log("request",request)
       let api_url = `https://${request.source}.blogspot.com?api`
       let api_response = await api_request(request, api_url)
       let source = getRealContentFromBlogPost(api_response.source)
@@ -374,25 +383,45 @@ class Jade{
     }
 
     static async bindModule(url_or_code){
-          // to invoke this code, import a code module with this code: excel-assessment/post/100
+      // to invoke this code, import a code module with this code: excel-assessment/post/100
       // where excel-assessment is the name of the blog (before .blogspot.com) and 
       // post is the name of the post.  The blog must be published in february of 2022 so it has a url of 
       // https://excel-assessment.blogspot.com/2022/02/post.html
       // anything else in the path will be sent as parameters to a function named "autoexec"
 
       // special loading to handle grading of excel assessments
-      console.log("I'm Binding!")
+      //console.log("I'm Binding!")
+
+      if(url_or_code.length===0){
+        if(window.location.hostname==="localhost"){
+          tag("module-url-or-code").value="excel-assessment|2024/02/is-110-fall-2024|wscxyVdVDRP8oK3xhT3dlbnxMdW50"
+        }
+        return
+      }  
+      
+      tag('spinner').style.display=''
+
       let source=null
-      if(url_or_code.length >= 32 && Jade.isHex(url_or_code)){
+
+      if(tag("module-url-or-code").value){
+        localStorage.setItem("JadeImportCode",tag("module-url-or-code").value)
+      }
+
+      //console.log("is hex",await Jade.isHex(url_or_code))
+      if(url_or_code.substring(0,7)==="http://" || url_or_code.substring(0,8)==="https://"){
         // this is a url to a js file
         const response = await fetch(url_or_code);
         source = await response.text();
+        // still needs work
+        return
   
-      }else if(url_or_code.length >= 32 && Jade.isHex(url_or_code)){
+      }else if(url_or_code.length >= 32 && await Jade.isHex(url_or_code)){
         // this could be a gist_id.  Let's check
         const response = await fetch("https://api.github.com/gists/");
         const movies = await response.text();
-        console.log(movies); 
+        //console.log(movies); 
+        // still needs work
+        return
       }
 
       // currently, only binding to blogger module.  need to add url, gist, and internal module (written in jade)
@@ -411,14 +440,15 @@ class Jade{
         // only supplied blog identifed and post name
         postName = parts[1]
       }else if(parts.length===3){
-        console.log("three parts of the blogger identifer supplied.  This is invalid")
+        //console.log("three parts of the blogger identifer supplied.  This is invalid")
         // need to give an error message
       }else if(parts.length===4){
         pubYear = parts[1]
         pubMonth = parts[2]
         postName = parts[3]
       }
-
+      //console.log("parts", parts)
+      //console.log("incporporating", blogName,pubYear, pubMonth, postName, parameters)
       const theModule = await Jade.incorporateBloggerModule(blogName,pubYear, pubMonth, postName, parameters)
       const params1={
         blogName,postName,pubMonth,pubYear,
@@ -439,6 +469,17 @@ class Jade{
   static async incorporateBloggerModule(blogName,pubYear, pubMonth, postName){
     //loads a code module from blogger  gives it the name blogname_postname
     // returns a reference to the jade module
+
+    const blogPathElements = blogName.split("/")
+    if(blogPathElements.length===4){
+      // we have a full path specified as the first argument, overwrite the others
+      blogName = blogPathElements[0]
+      pubYear  = blogPathElements[1]
+      pubMonth = blogPathElements[2]
+      postName = blogPathElements[3]
+    }
+    
+
     const moduleName = `${blogName}/${pubYear}/${pubMonth}/${postName}`
     if(!jade_modules[moduleName]){
         const source = await Jade.getBloggerPost(blogName, postName, pubYear, pubMonth)
@@ -895,7 +936,7 @@ class Jade{
 
   const urlParams = new URLSearchParams(window.location.search);
   let mode = urlParams.get('mode')
-  console.log("mode", mode)
+  //console.log("mode", mode)
 
   jade_settings.workbook.styles.system=tag("head_style").innerText
   jade_panels.push("panel_home")
@@ -903,7 +944,7 @@ class Jade{
   //load code from one gist if specified.  
  //console.log("about ot load")
   if(mode==="jade"){
-    // an intermediate step to allow jade tools to stay on the main jade screen until new manifest is published
+    // an intermediate step to allow jade tools to stay on the main jade screen until new manifest is published (2/2024)
     if(tag("open-tools")){
       tag("open-tools").style.display="none"
     }
@@ -928,8 +969,8 @@ class Jade{
           const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
           //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
           const options=atob(doc.getElementsByTagName("options")[0].textContent)
-          console.log("just loaded module", module_name)
-          console.log(module_code)
+          //console.log("just loaded module", module_name)
+          //console.log(module_code)
           
           if(module_name==="initialize"){
             boundModuleExists=true
@@ -943,11 +984,11 @@ class Jade{
         }
       })
     }
-    console.log("boundmodule---->", boundModuleExists)
+    //console.log("boundmodule---->", boundModuleExists)
 
     if(boundModuleExists){
       tag("panel_home").innerHTML=``  
-      console.log("Earth Earth Earth Earth Earth Earth Earth Earth Earth ")
+      //console.log("Earth Earth Earth Earth Earth Earth Earth Earth Earth ")
 
       jade_modules.initialize.initialize()
 
@@ -957,14 +998,20 @@ class Jade{
     <div style="background-color:darkgreen; text-align:center;padding:1rem" >
       <div style="background-color:white; padding:1rem;">
         <div style="margin-bottom:1rem">Enter Code:</div>
-          <input id="module-url-or-code" type="text" style="width:100%" value="excel-assessment|2024/02/is-110-fall-2024|eyJpZCI6ImFzZmd0NjVyIiwiZmlyc3ROYW1lIjoiR292ZSIsImxhc3ROYW1lIjoiQWxsZW4ifQ"> 
+          <input id="module-url-or-code" type="text" style="width:100%"> 
         <div style="text-align:right">
-          <button onClick="tag('spinner').style.display='';Jade.bindModule(tag('module-url-or-code').value)">Import</button>
+          <button onClick="Jade.bindModule(tag('module-url-or-code').value)">Import</button>
           </div>
           <img id="spinner" src="assets/spinner.gif" style="display:none">
       </div>
     </div>
     `
+    const currentCode = localStorage.getItem("JadeImportCode")
+    if(currentCode){
+      tag("module-url-or-code").value=currentCode
+    }  
+
+
     }
   }else if(jade_settings.workbook.load_gist_id){
     //console.log("in if")
@@ -982,61 +1029,66 @@ class Jade{
     tag("panel_home").style.display="block"
   }
   
-  // add event listner to "add code module" input
-  tag("new-module-name").addEventListener("keyup", function(event) {
+  if(!tag("new-module-name")){
+    // the ret
+    return
+  }
+  if(mode==="jade" || !mode){  // code that only needs to be run for the main Jade panel
+    // add event listner to "add code module" input
+    tag("new-module-name").addEventListener("keyup", function(event) {
+        event.preventDefault();
+        if (event.key === 'Enter') {
+            tag("module-add-button").click();
+        }
+    });
+
+    // add event listner to "import module" input
+    tag("gist-url").addEventListener("keyup", function(event) {
       event.preventDefault();
       if (event.key === 'Enter') {
-          tag("module-add-button").click();
+          tag("module-import-button").click();
       }
-  });
-
-  // add event listner to "import module" input
-  tag("gist-url").addEventListener("keyup", function(event) {
-    event.preventDefault();
-    if (event.key === 'Enter') {
-        tag("module-import-button").click();
-    }
-  });
+    });
 
 
-  // fit the editor to the windows on resize
-  window.addEventListener('resize', function(event) {
-    //console.log("hi")
-    for(const panel_name of jade_code_panels){
-      tag(panel_name + "_editor-page").style.height = Jade.editor_height()
-    }
-  }, true);
-  Jade.init_examples()
-  Jade.init_output()
-  
-  // ---------------- Initializing Code Editors -----------------------------
-  if(jade_settings.workbook.code_module_ids.length>0){// show the button to view code modules
-    Jade.show_element("open-editor")
-  }
-  //console.log("at init_code_editors       jade_settings.workbook.code_module_ids", jade_settings.workbook.code_module_ids)
-  if(jade_settings.workbook.code_module_ids.length>0){
-    Excel.run(async (excel)=>{
-      const parser = new DOMParser();
-      for(const code_module_id of jade_settings.workbook.code_module_ids){
-        const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
-        const xmlBlob = xmlpart.getXml();
-        await excel.sync()
-        
-        const doc = parser.parseFromString(xmlBlob.value, "application/xml");
-        const module_name=doc.getElementsByTagName("name")[0].textContent
-        const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
-        //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
-        const options=atob(doc.getElementsByTagName("options")[0].textContent)
-      //console.log("just loaded module", module_name)
-        //console.log("jade_settings2", JSON.parse(jade_settings))
-        //console.log("options", options)
-        //console.log("options-parsed", JSON.parse(options))
-        debugger
-        Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
+    // fit the editor to the windows on resize
+    window.addEventListener('resize', function(event) {
+      //console.log("hi")
+      for(const panel_name of jade_code_panels){
+        tag(panel_name + "_editor-page").style.height = Jade.editor_height()
       }
-    })
-  }
-
+    }, true);
+    Jade.init_examples()
+    Jade.init_output()
+    
+    // ---------------- Initializing Code Editors -----------------------------
+    if(jade_settings.workbook.code_module_ids.length>0){// show the button to view code modules
+      Jade.show_element("open-editor")
+    }
+    //console.log("at init_code_editors       jade_settings.workbook.code_module_ids", jade_settings.workbook.code_module_ids)
+    if(jade_settings.workbook.code_module_ids.length>0){
+      Excel.run(async (excel)=>{
+        const parser = new DOMParser();
+        for(const code_module_id of jade_settings.workbook.code_module_ids){
+          const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
+          const xmlBlob = xmlpart.getXml();
+          await excel.sync()
+          
+          const doc = parser.parseFromString(xmlBlob.value, "application/xml");
+          const module_name=doc.getElementsByTagName("name")[0].textContent
+          const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
+          //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
+          const options=atob(doc.getElementsByTagName("options")[0].textContent)
+        //console.log("just loaded module", module_name)
+          //console.log("jade_settings2", JSON.parse(jade_settings))
+          //console.log("options", options)
+          //console.log("options-parsed", JSON.parse(options))
+          //debugger
+          Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
+        }
+      })
+    }
+  }// end of code just for the JADE main panel
  //console.log("end of  start_me_up, jade_settings", jade_settings)
   }
   static configure_settings(){
@@ -1312,7 +1364,7 @@ class Jade{
     }
   }
   static show_automations(show_close_button, heading, list){
-    console.log("at list automations")
+    //console.log("at list automations")
     const panel_name="panel_listings"
     // get the list of functions
     //###################################################### need to iterate over all modules
@@ -1662,8 +1714,8 @@ class Jade{
       //console.log("panel_name",panel_name)
       //console.log("Jade.panel_name_to_module_name(panel_name)",Jade.panel_name_to_module_name(panel_name))
       const mod_name=Jade.panel_name_to_module_name(panel_name)
-      // console.log("mod_name",mod_name, script_name)
-      // console.log("jade_modules[mod_name][script_name]",jade_modules[mod_name][script_name])
+      // //console.log("mod_name",mod_name, script_name)
+      // //console.log("jade_modules[mod_name][script_name]",jade_modules[mod_name][script_name])
       jade_modules[mod_name][script_name]()
     }
   }
@@ -1927,13 +1979,15 @@ class Jade{
     
     return true
   }    
+
   static parse_code(code){
     try{
-      return acorn.parse(code, { "ecmaVersion": 8 }  );
+      return acorn.parse(code, { "ecmaVersion": "latest" }  );
     }catch(e){
       return {error:e.message}
     }
   }
+
   static update_editor_script(panel_name) {
     // read the script for an ace editor and write it to the DOM
     // also saves the module to the custom properties
@@ -1981,6 +2035,7 @@ class Jade{
     // It turns out that the script block does not need to persist in the HTML
     // once the script block is loaded, the JS is parsed and not again referenced.
     // So, we create a script block, append it to the document body, then remove.
+    //console.log(module_name_in, code)
     let new_code=code
     if(module_name_in){
       // a module_name is supplied, put this in Jade Modules
@@ -2100,7 +2155,7 @@ class Jade{
     
       })
     }catch(e){
-      console.log("Not in Excel.  No saving yet...")
+      //console.log("Not in Excel.  No saving yet...")
     }
   }
   static load_function_names_select(code,panel_name){// reads the function names from the code and puts them in the function name select
@@ -2369,13 +2424,16 @@ String.prototype.toTitleCase=function() {
   return str.join(' ');
 }
 
-function alert(data, heading){
+function alert(data, heading, headerColor){
   if(tag("jade-alert")){tag("jade-alert").remove()}
   if(!heading){heading="System Message"}
   const div = document.createElement("div")
   div.className="jade-alert"
   div.id='jade-alert'
   const header = document.createElement("div")
+  if(headerColor){
+    header.style.backgroundColor = headerColor
+  }
   header.className="jade-alert-header"  
   header.innerHTML = heading 
 
