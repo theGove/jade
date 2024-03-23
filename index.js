@@ -21,9 +21,39 @@ const jade_modules = {
   }
 }
 
+
 class Jade{
 
   // Class Properties
+  static odin = new (class {
+    storage
+    get = {}
+    set = {}
+    mutate = {}
+    constructor(namespace, obj) {
+      this.namespace = namespace
+      this.storage = new ODIN.AutoStorage(namespace, obj)
+      for (const key of this.storage.getKeys()) {
+          this.get[key] = () => {
+              return Jade.getSetting(this.storage.itemKey(key)) ?? this.storage.get[key]()
+          }
+          this.set[key] = async (value) => {
+              this.storage.set[key](value)
+              await Jade.setSetting(this.storage.itemKey(key), value)
+          }
+          this.mutate[key] = this.storage.mutate[key]
+      }
+    }
+  })("jade-settings-on-odin", {
+    code_module_ids: {settings:{
+      defaultValue: [], storageType: ODIN.STORAGE_TYPE.MEMORY}},
+    gist_name_server: {settings:{
+      defaultValue: "https://gns.jsvba.com/", storageType: ODIN.STORAGE_TYPE.MEMORY}},
+      examples_gist_id: {settings:{
+        defaultValue: "f8e5fc20cff0c19a27765e7ce5fe54fe", storageType: ODIN.STORAGE_TYPE.MEMORY}},
+      jade_settings: {settings:{
+        defaultValue: null, storageType: ODIN.STORAGE_TYPE.MEMORY}},
+      })
   
 
 
@@ -758,9 +788,11 @@ class Jade{
     tag("fb-button").onclick = Jade.submit_feedback;
     tag("show-settings-row").onclick = function(){Jade.toggle_element('settings-page');tag('settings-button').scrollIntoView(true);};
     tag("settings-button").onclick = Jade.save_settings;
-    PLATFORM = info.host  // make the host knowable elsewhere
+    PLATFORM = info.host  // make the host knowable elsewhere    
 
-    if (info.host === Office.HostType.Word || info.host === Office.HostType.PowerPoint ) {
+    if(Jade.odin.get.jade_settings() === null){
+      console.log("using default values")
+      // no jade_settings so let's configuire some defaults
       jade_settings.user={
         ace_options:{
           selectionStyle:"line",
@@ -831,104 +863,19 @@ class Jade{
           bootstrap:"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css",
         }
       }
-      Jade.configure_settings()
-      Jade.start_me_up()
+    }else{// if xl_settings a null object
+      console.log("using stored values")
+      //console.log("xl_settings",xl_settings.value)
+      const stored_jade_settings = Jade.odin.get.jade_settings()
+      jade_settings.workbook = stored_jade_settings.workbook
+      jade_settings.user = stored_jade_settings.user
+    }// if jade_settings null object
+    //console.log("before start_me_up, jade_settings", jade_settings)
+    Jade.configure_settings()
+    Jade.start_me_up()
+    if(document.getElementById("menu-msg")){
       document.getElementById("menu-msg").style.display = "block"
-    }else if (info.host === Office.HostType.Excel) {
-    
-
-          Excel.run(async (excel)=>{
-            const xl_settings = excel.workbook.settings.getItemOrNullObject("jade").load("value");
-            //  const code_module_ids_from_settings = excel.workbook.settings.getItemOrNullObject("code_module_ids").load("value");
-            await excel.sync()
-            if(xl_settings.isNullObject){
-              // no jade_settings so let's configuire some defaults
-              jade_settings.user={
-                ace_options:{
-                  selectionStyle:"line",
-                  highlightActiveLine:true,
-                  highlightSelectedWord:true,
-                  readOnly:false,
-                  copyWithEmptySelection:false,
-                  cursorStyle:"ace",
-                  mergeUndoDeltas:true,
-                  behavioursEnabled:true,
-                  wrapBehavioursEnabled:true,
-                  enableAutoIndent:true,
-                  showLineNumbers:true,
-                  hScrollBarAlwaysVisible:false,
-                  vScrollBarAlwaysVisible:false,
-                  highlightGutterLine:true,
-                  animatedScroll:false,
-                  showInvisibles:false,
-                  showPrintMargin:false,
-                  printMarginColumn:80,
-                  printMargin:80,
-                  fadeFoldWidgets:false,
-                  showFoldWidgets:true,
-                  displayIndentGuides:true,
-                  showGutter:true,
-                  fontSize:"12pt",
-                  scrollPastEnd:0,
-                  theme:"ace/theme/tomorrow",
-                  maxPixelHeight:0,
-                  useTextareaForIME:true,
-                  scrollSpeed:2,
-                  dragDelay:0,
-                  dragEnabled:true,
-                  focusTimeout:0,
-                  tooltipFollowsMouse:true,
-                  firstLineNumber:1,
-                  overwrite:false,
-                  newLineMode:"auto",
-                  useWorker:false,
-                  navigateWithinSoftTabs:false,
-                  wrap:true,
-                  indentedSoftWrap:true,
-                  foldStyle:"markbegin",
-                  mode:"ace/mode/javascript",
-                  enableMultiselect:true,
-                  enableBlockSelect:true,
-                  tabSize:2,
-                  useSoftTabs:true
-                } 
-              }
-              jade_settings.workbook={
-                code_module_ids:[],
-                gist_name_server:"https://gns.jsvba.com/",
-                examples_gist_id:"f8e5fc20cff0c19a27765e7ce5fe54fe",
-                styles:{
-                  system:null,
-                  none:"/*No Theme CSS Used*/",
-                  mvp:"https://cdnjs.cloudflare.com/ajax/libs/mvp.css/1.8.0/mvp.css",
-                  marx:"https://cdnjs.cloudflare.com/ajax/libs/marx/4.0.0/marx.min.css",
-                  water:"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css",
-                  "dark water":"https://cdn.jsdelivr.net/npm/water.css@2/out/dark.css",
-                  sajura:"https://unpkg.com/sakura.css/css/sakura.css",
-                  tacit:"https://cdn.jsdelivr.net/gh/yegor256/tacit@gh-pages/tacit-css-1.5.5.min.css",
-                  pure:"https://unpkg.com/purecss@2.0.6/build/pure-min.css",
-                  picnic:"https://cdn.jsdelivr.net/npm/picnic",
-                  wing:"https://unpkg.com/wingcss",
-                  chota:"https://unpkg.com/chota@latest",
-                  bootstrap:"https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css",
-                }
-              }
-            }else{// if xl_settings a null object
-              //console.log("xl_settings",xl_settings.value)
-              jade_settings.workbook=xl_settings.value.workbook
-              jade_settings.user = xl_settings.value.user
-            }// if jade_settings null object
-           //console.log("before start_me_up, jade_settings", jade_settings)
-            Jade.configure_settings()
-            Jade.start_me_up()
-            if(document.getElementById("menu-msg")){
-              document.getElementById("menu-msg").style.display = "block"
-            }
-          })
-      }else{
-          document.getElementById("sideload-msg").style.display = "block"
-          
-      }
+    }
   }
   static async start_me_up(){
   //console.log("at start_me_up")
@@ -956,33 +903,14 @@ class Jade{
   //binding a module to this workbook
 
     let boundModuleExists=false 
-    if(jade_settings.workbook.code_module_ids.length>0){
-      await Excel.run(async (excel)=>{
-        const parser = new DOMParser();
-        for(const code_module_id of jade_settings.workbook.code_module_ids){
-          const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
-          const xmlBlob = xmlpart.getXml();
-          await excel.sync()
-          
-          const doc = parser.parseFromString(xmlBlob.value, "application/xml");
-          const module_name=doc.getElementsByTagName("name")[0].textContent
-          const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
-          //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
-          const options=atob(doc.getElementsByTagName("options")[0].textContent)
-          //console.log("just loaded module", module_name)
-          //console.log(module_code)
-          
-          if(module_name==="initialize"){
-            boundModuleExists=true
-          }
-          //console.log("jade_settings2", JSON.parse(jade_settings))
-          //console.log("options", options)
-          //console.log("options-parsed", JSON.parse(options))
-          
-          Jade.incorporate_code(module_code, module_name)
-          //Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
-        }
-      })
+    for(const code_module_id of jade_settings.workbook.code_module_ids){
+      const module_info = Jade.get_module(code_module_id)
+      const module_name= module_info.name //doc.getElementsByTagName("name")[0].textContent
+      const module_code = atob(module_info.code) //atob(doc.getElementsByTagName("code")[0].textContent)
+      Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))    
+      
+      Jade.incorporate_code(module_code, module_name)
+      //Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
     }
     //console.log("boundmodule---->", boundModuleExists)
 
@@ -1065,31 +993,14 @@ class Jade{
     if(jade_settings.workbook.code_module_ids.length>0){// show the button to view code modules
       Jade.show_element("open-editor")
     }
-    //console.log("at init_code_editors       jade_settings.workbook.code_module_ids", jade_settings.workbook.code_module_ids)
-    if(jade_settings.workbook.code_module_ids.length>0){
-      Excel.run(async (excel)=>{
-        const parser = new DOMParser();
         for(const code_module_id of jade_settings.workbook.code_module_ids){
-          const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
-          const xmlBlob = xmlpart.getXml();
-          await excel.sync()
-          
-          const doc = parser.parseFromString(xmlBlob.value, "application/xml");
-          const module_name=doc.getElementsByTagName("name")[0].textContent
-          const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
-          //const settings=atob(doc.getElementsByTagName("settings")[0].textContent)// might want to rename
-          const options=atob(doc.getElementsByTagName("options")[0].textContent)
-        //console.log("just loaded module", module_name)
-          //console.log("jade_settings2", JSON.parse(jade_settings))
-          //console.log("options", options)
-          //console.log("options-parsed", JSON.parse(options))
-          //debugger
+          const module_info = Jade.get_module(code_module_id)
+          const module_name= module_info.name //doc.getElementsByTagName("name")[0].textContent
+          const module_code = atob(module_info.code) //atob(doc.getElementsByTagName("code")[0].textContent)
+          const options= module_info.options //atob(doc.getElementsByTagName("options")[0].textContent)
           Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
         }
-      })
-    }
   }// end of code just for the JADE main panel
- //console.log("end of  start_me_up, jade_settings", jade_settings)
   }
   static configure_settings(){
    //console.log("jade_settings", jade_settings)
@@ -1145,32 +1056,14 @@ class Jade{
     Jade.hide_element('settings-page')
   }
   static async save_object_to_workbook(the_object, the_key){
-   //console.log("at Jade.save_object_to_workbook", the_object, the_key)
-      await Excel.run(async (excel)=>{
-        const xl_settings = excel.workbook.settings;
-        xl_settings.add(the_key, the_object);  // adds or sets the value
-        await excel.sync()
-      })
+    Jade.setSetting(the_key, the_object)
   }
   static async read_object_from_workbook(the_key){
-    let the_object
-    await Excel.run(async (excel)=>{
-      the_object = excel.workbook.settings.getItemOrNullObject(the_key).load("value");
-      await excel.sync()
-    })
-    if(!the_object.m_value){
-      return {}
-    }
-    return the_object.m_value
+    return Jade.getSetting(the_key)
   }
 
-
   static async write_settings_to_workbook(){
-    await Excel.run(async (excel)=>{
-      const xl_settings = excel.workbook.settings;
-      xl_settings.add("jade", jade_settings);  // adds or sets the value
-      await excel.sync()
-    })
+    Jade.odin.set.jade_settings(jade_settings)
   }
   static apply_editor_options(options){
     for(const panel_name of jade_code_panels){
@@ -2101,63 +1994,35 @@ class Jade{
     //console.log("writing options", JSON.stringify(options))
     
     const module_name = tag(panel_name).dataset.module_name
-    let xmlid = tag(panel_name).dataset.module_xmlid
-  
-    if (xmlid){  // workbook as already been saved and has and xmlid
-      //console.log("saving an existing book")
-      Jade.save_module_to_workbook(code, module_name, jade_settings, xmlid, options)
-    }else{  // workbook not yet saved, function call will return an xmlid
-      Jade.save_module_to_workbook(code, module_name, jade_settings, xmlid, options, tag(panel_name))
+    Jade.save_module_to_workbook(code, module_name, options)
+  }
+  static async save_module_to_workbook(code, module_name, options){
+    const foundId = jade_settings.workbook.code_module_ids.find(id=>{
+      return Jade.getSetting(`${id}-module-name`) === module_name
+    })
+
+    if(foundId){
+      Jade.setSetting(`${foundId}-module-code`, btoa(code))
+      Jade.setSetting(`${foundId}-module-options`, JSON.stringify(options))
+    }else{
+      const id = uuid()
+      jade_settings.workbook.code_module_ids.push(id)
+      Jade.odin.set.jade_settings(jade_settings)
+      Jade.setSetting(`${id}-module-code`, btoa(code))
+      Jade.setSetting(`${id}-module-name`, module_name)
+      Jade.setSetting(`${id}-module-options`, JSON.stringify(options))
     }
   }
-  static save_module_to_workbook(code, module_name, mod_settings, xmlid, options, tag_to_hold_new_xml_id){
-    // options are currently being ignored, they are handled globally instead of at the module level
-    // save to workbook
-    try{// added to bootstrap word implementation
-      Excel.run(async (excel)=>{
-        //console.log("saving code", panel_name) 
-        if(!mod_settings){
-          mod_settings = {
-            cursorPosition:{row: 0, column: 0},
-          }
-        }
-        //The next line has been disabled because we are not currently maintaining options at the module level
-        //const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(jade_settings))+"</jade_settings><options>"+btoa(JSON.stringify(options))+"</options><code>"+btoa(code)+"</code></module>"
-    
-        // save module without options
-        const module_xml = "<module xmlns='http://schemas.gove.net/code/1.0'><name>"+module_name+"</name><jade_settings>"+btoa(JSON.stringify(mod_settings))+"</jade_settings><options>"+btoa(null)+"</options><code>"+btoa(code)+"</code></module>"
-        if(xmlid){
-        //console.log("updating xml", xmlid, typeof xmlid)
-          const customXmlPart = excel.workbook.customXmlParts.getItem(xmlid);
-          customXmlPart.setXml(module_xml)
-          excel.sync()
-        //console.log("------- launched saving: existing -------") 
-        }else{
-          //console.log("creating xml")
-          const customXmlPart = excel.workbook.customXmlParts.add(module_xml);
-          customXmlPart.load("id");
-          await excel.sync();
-    
-          //console.log("customXmlPart",customXmlPart.getXml())
-          // this is a newly created module and needs to have a custom xmlid part made for it
-        //console.log("23443", jade_settings, customXmlPart.id)
-          jade_settings.workbook.code_module_ids.push(customXmlPart.id)                   // add the id to the list of ids
-          Jade.write_settings_to_workbook()
-        //console.log("------- launched saving: newly created -------")
-        //console.log(typeof tag_to_hold_new_xml_id, tag_to_hold_new_xml_id)
-          if(tag_to_hold_new_xml_id){
-          //console.log("writing.....xmlid", customXmlPart.id)
-            tag_to_hold_new_xml_id.dataset.module_xmlid = customXmlPart.id
-          //console.log(tag_to_hold_new_xml_id)
-          }
-        }
-      
-    
-      })
-    }catch(e){
-      //console.log("Not in Excel.  No saving yet...")
+
+  static get_module(id){
+    console.log("get_module", id)
+    return {
+      code: Jade.getSetting(`${id}-module-code`),
+      name: Jade.getSetting(`${id}-module-name`),
+      options: Jade.getSetting(`${id}-module-options`),
     }
   }
+
   static load_function_names_select(code,panel_name){// reads the function names from the code and puts them in the function name select
 
     // if a string is passed in, parse it.  otherwise, assume it is already parsed
@@ -2404,6 +2269,22 @@ function auto_exec(){
 
     );
 }
+
+static getSetting(key){
+  return Office.context.document.settings.get(key)
+}
+
+static setSetting(key, value){
+  Office.context.document.settings.set(key, value);
+  return Jade.saveSettingsToDocument()
+}
+
+static async saveSettingsToDocument(){
+  return await new Promise(resolve => {
+    Office.context.document.settings.saveAsync(resolve);
+  })
+}
+
 }// end of Jade class
 
 
@@ -2470,6 +2351,12 @@ function word_module(){
       Jade.load_js('http://localhost:5500/word.js')
     }`
   
+}
+
+function uuid() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
 }
     
 
