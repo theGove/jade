@@ -25,37 +25,6 @@ const jade_modules = {
 class Jade{
 
   // Class Properties
-  static odin = new (class {
-    storage
-    get = {}
-    set = {}
-    mutate = {}
-    constructor(namespace, obj) {
-      this.namespace = namespace
-      this.storage = new ODIN.AutoStorage(namespace, obj)
-      for (const key of this.storage.getKeys()) {
-          this.get[key] = () => {
-              return Jade.getSetting(this.storage.itemKey(key)) ?? this.storage.get[key]()
-          }
-          this.set[key] = async (value) => {
-              this.storage.set[key](value)
-              await Jade.setSetting(this.storage.itemKey(key), value)
-          }
-          this.mutate[key] = this.storage.mutate[key]
-      }
-    }
-  })("jade-settings-on-odin", {
-    code_module_ids: {settings:{
-      defaultValue: [], storageType: ODIN.STORAGE_TYPE.MEMORY}},
-    gist_name_server: {settings:{
-      defaultValue: "https://gns.jsvba.com/", storageType: ODIN.STORAGE_TYPE.MEMORY}},
-      examples_gist_id: {settings:{
-        defaultValue: "f8e5fc20cff0c19a27765e7ce5fe54fe", storageType: ODIN.STORAGE_TYPE.MEMORY}},
-      jade_settings: {settings:{
-        defaultValue: null, storageType: ODIN.STORAGE_TYPE.MEMORY}},
-      })
-  
-
 
   // Class Methods exposed to be called by Jade Users
   static automate(fn){
@@ -790,7 +759,7 @@ class Jade{
     tag("settings-button").onclick = Jade.save_settings;
     PLATFORM = info.host  // make the host knowable elsewhere    
 
-    if(Jade.odin.get.jade_settings() === null){
+    if(Jade.get_settings_from_workbook() === null){
       console.log("using default values")
       // no jade_settings so let's configuire some defaults
       jade_settings.user={
@@ -866,7 +835,7 @@ class Jade{
     }else{// if xl_settings a null object
       console.log("using stored values")
       //console.log("xl_settings",xl_settings.value)
-      const stored_jade_settings = Jade.odin.get.jade_settings()
+      const stored_jade_settings = Jade.get_settings_from_workbook()
       jade_settings.workbook = stored_jade_settings.workbook
       jade_settings.user = stored_jade_settings.user
     }// if jade_settings null object
@@ -1063,8 +1032,13 @@ class Jade{
   }
 
   static async write_settings_to_workbook(){
-    Jade.odin.set.jade_settings(jade_settings)
+    await Jade.setSetting('jade_settings', jade_settings)
   }
+
+  static get_settings_from_workbook(){
+    return Jade.getSetting('jade_settings')
+  }
+
   static apply_editor_options(options){
     for(const panel_name of jade_code_panels){
       //console.log("updating options on ", panel_name)
@@ -2007,7 +1981,7 @@ class Jade{
     }else{
       const id = uuid()
       jade_settings.workbook.code_module_ids.push(id)
-      Jade.odin.set.jade_settings(jade_settings)
+      Jade.write_settings_to_workbook()
       Jade.setSetting(`${id}-module-code`, btoa(code))
       Jade.setSetting(`${id}-module-name`, module_name)
       Jade.setSetting(`${id}-module-options`, JSON.stringify(options))
