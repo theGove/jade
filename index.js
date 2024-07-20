@@ -742,7 +742,7 @@ class Jade{
   // think they are useful and we don't document them.
 
 
-  static officeReady(info){// invoked when the office addin infrastructure has loaded
+  static async officeReady(info){// invoked when the office addin infrastructure has loaded
     //console.log ("host, hosttype----->",info.host, Office.HostType.Excel) 
 
     tag("open-tools").onclick = function(){Jade.open_tools()};
@@ -759,7 +759,8 @@ class Jade{
     tag("settings-button").onclick = Jade.save_settings;
     PLATFORM = info.host  // make the host knowable elsewhere    
 
-    if(Jade.get_settings_from_workbook() === null){
+    const stored_jade_settings = await Jade.get_settings_from_workbook()
+    if(stored_jade_settings === null){
       console.log("using default values")
       // no jade_settings so let's configuire some defaults
       jade_settings.user={
@@ -835,7 +836,6 @@ class Jade{
     }else{// if xl_settings a null object
       console.log("using stored values")
       //console.log("xl_settings",xl_settings.value)
-      const stored_jade_settings = Jade.get_settings_from_workbook()
       jade_settings.workbook = stored_jade_settings.workbook
       jade_settings.user = stored_jade_settings.user
     }// if jade_settings null object
@@ -1035,8 +1035,27 @@ class Jade{
     await Jade.setSetting('jade_settings', jade_settings)
   }
 
-  static get_settings_from_workbook(){
-    return Jade.getSetting('jade_settings')
+  static async get_settings_from_workbook(){
+    const settings = Jade.getSetting('jade_settings')
+    if (settings) {
+      return settings
+    }
+    // no setting found, check legacy system for backward compatibility 
+    if (!window.Excel) {
+      return null
+    }
+    let result = null
+    await Excel.run( async (excel) => {
+      const xl_settings = excel.workbook.settings.getItemOrNullObject("jade").load("value")
+      await excel.sync()
+      if (!xl_settings.isNullObject) {
+        result = {
+          workbook: xl_settings.value.workbook,
+          user: xl_settings.value.user,
+        }
+      }
+    })
+    return result
   }
 
   static apply_editor_options(options){
