@@ -872,14 +872,9 @@ class Jade{
   //binding a module to this workbook
 
     let boundModuleExists=false 
-    for(const code_module_id of jade_settings.workbook.code_module_ids){
-      const module_info = Jade.get_module(code_module_id)
-      const module_name= module_info.name //doc.getElementsByTagName("name")[0].textContent
-      const module_code = atob(module_info.code) //atob(doc.getElementsByTagName("code")[0].textContent)
-      Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))    
-      
-      Jade.incorporate_code(module_code, module_name)
-      //Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
+    for(const module of await Jade.get_modules()){
+      Jade.add_code_editor(module.name, module.code,module.id, null, JSON.parse(module.options))    
+      Jade.incorporate_code(module.code, module.name)
     }
     //console.log("boundmodule---->", boundModuleExists)
 
@@ -962,13 +957,9 @@ class Jade{
     if(jade_settings.workbook.code_module_ids.length>0){// show the button to view code modules
       Jade.show_element("open-editor")
     }
-        for(const code_module_id of jade_settings.workbook.code_module_ids){
-          const module_info = Jade.get_module(code_module_id)
-          const module_name= module_info.name //doc.getElementsByTagName("name")[0].textContent
-          const module_code = atob(module_info.code) //atob(doc.getElementsByTagName("code")[0].textContent)
-          const options= module_info.options //atob(doc.getElementsByTagName("options")[0].textContent)
-          Jade.add_code_editor(module_name, module_code,code_module_id, null, JSON.parse(options))        
-        }
+    for(const module of await Jade.get_modules()){
+      Jade.add_code_editor(module.name, module.code,module.id, null, JSON.parse(module.options))    
+    }
   }// end of code just for the JADE main panel
   }
   static configure_settings(){
@@ -2016,6 +2007,67 @@ class Jade{
     }
   }
 
+  /**
+   * 
+   * @param {string} code_module_id 
+   */
+  static async legacy_incorporate_modules(){
+    if(jade_settings.workbook.code_module_ids.length>0){
+      await Excel.run(async (excel)=>{
+        const parser = new DOMParser();
+        for(const code_module_id of jade_settings.workbook.code_module_ids){
+          const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
+          const xmlBlob = xmlpart.getXml();
+          await excel.sync()
+
+          const doc = parser.parseFromString(xmlBlob.value, "application/xml");
+          const module_name=doc.getElementsByTagName("name")[0].textContent
+          const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
+          if(module_name==="initialize"){
+            boundModuleExists=true
+          }
+          Jade.incorporate_code(module_code, module_name)
+        }
+      })
+    }
+  }
+
+  static async get_modules(){
+    /** @type {Array<{id: string, code: string, name: string, options: string}>} */
+    const modules = []
+    await Excel.run(async (excel)=>{
+      const legacy_xml_blobs = []
+      for(const module_id of jade_settings.workbook.code_module_ids){
+        const module = Jade.get_module(module_id)
+        if (module.code && module.name) {
+          modules.pop({
+            ...module,
+            id: module_id,
+          })
+        }else{
+          const xmlpart=excel.workbook.customXmlParts.getItem(module_id)
+          legacy_xml_blobs.push({xmlBlob: xmlpart.getXml(), module_id});
+        }
+      }
+      await excel.sync()
+      for(const {xmlBlob, module_id} of legacy_xml_blobs){
+        console.warn("module:", module_id, "loaded from legacy storage.")
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlBlob.value, "application/xml");
+        const module_name=doc.getElementsByTagName("name")[0].textContent
+        const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
+        const options=atob(doc.getElementsByTagName("options")[0].textContent)
+        modules.push({
+          id: module_id,
+          name: module_name,
+          code: module_code,
+          options,
+        })
+      }
+    })
+    return modules
+  }
+
   static load_function_names_select(code,panel_name){// reads the function names from the code and puts them in the function name select
 
     // if a string is passed in, parse it.  otherwise, assume it is already parsed
@@ -2276,6 +2328,11 @@ static async saveSettingsToDocument(){
   return await new Promise(resolve => {
     Office.context.document.settings.saveAsync(resolve);
   })
+}
+
+static isLegacyStorage(){
+    const settings = Jade.getSetting('jade_settings')
+    return settings ? true : false
 }
 
 }// end of Jade class
