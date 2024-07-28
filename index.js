@@ -2007,34 +2007,23 @@ class Jade{
     }
   }
 
-  /**
-   * 
-   * @param {string} code_module_id 
-   */
-  static async legacy_incorporate_modules(){
-    if(jade_settings.workbook.code_module_ids.length>0){
-      await Excel.run(async (excel)=>{
-        const parser = new DOMParser();
-        for(const code_module_id of jade_settings.workbook.code_module_ids){
-          const xmlpart=excel.workbook.customXmlParts.getItem(code_module_id)
-          const xmlBlob = xmlpart.getXml();
-          await excel.sync()
-
-          const doc = parser.parseFromString(xmlBlob.value, "application/xml");
-          const module_name=doc.getElementsByTagName("name")[0].textContent
-          const module_code = atob(doc.getElementsByTagName("code")[0].textContent)
-          if(module_name==="initialize"){
-            boundModuleExists=true
-          }
-          Jade.incorporate_code(module_code, module_name)
-        }
-      })
-    }
-  }
-
   static async get_modules(){
     /** @type {Array<{id: string, code: string, name: string, options: string}>} */
     const modules = []
+    if(!window.Excel){
+      // we can only get the settings from the new storage system
+      // if we are not in Excel
+      for(const module_id of jade_settings.workbook.code_module_ids){
+        const module = Jade.get_module(module_id)
+        if (module.code && module.name) {
+          modules.pop({
+            ...module,
+            id: module_id,
+          })
+        }
+      }
+      return  modules
+    }
     await Excel.run(async (excel)=>{
       const legacy_xml_blobs = []
       for(const module_id of jade_settings.workbook.code_module_ids){
