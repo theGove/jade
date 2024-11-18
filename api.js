@@ -1,4 +1,5 @@
 /**
+ * 
  * An Object for handling Cross origin i-frame communication
  */
 const Slick = {
